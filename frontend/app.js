@@ -1,5 +1,5 @@
-// WhosWhoZoo — Frontend App v1.8.48
-const APP_VERSION = "1.8.48";
+// WhosZoo — Frontend App v1.8.49
+const APP_VERSION = "1.8.49";
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -1060,7 +1060,18 @@ function showSettingsPanel() {
   panelVoiceInput.value = voiceInputPref;
   settingsPanel.classList.remove("hidden");
   panelMain.classList.remove("hidden");
-  document.getElementById("app-version-display").textContent = "WhosWhoZoo v" + APP_VERSION;
+  // Links to the public update notes. Built as an element rather than innerHTML so the
+  // version string can never be interpreted as markup, and so the strict app CSP is not
+  // relied on as the only thing standing between a constant and injection.
+  const verEl = document.getElementById("app-version-display");
+  verEl.textContent = "";
+  const verLink = document.createElement("a");
+  verLink.href = "https://whoszoo.app/update-notes";
+  verLink.target = "_blank";
+  verLink.rel = "noopener";
+  verLink.style.color = "inherit";
+  verLink.textContent = "WhosZoo v" + APP_VERSION;
+  verEl.appendChild(verLink);
   cpForm.classList.add("hidden");
   panelAdvanced.classList.add("hidden");
   panelAdvancedCaret.classList.remove("open");

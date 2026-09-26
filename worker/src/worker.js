@@ -11,7 +11,7 @@ import { buildStaticPrompt, buildDynamicPrompt } from "./system-prompt.js";
 // Reads/writes memory files from Cloudflare KV.
 // Calls Claude API server-side for chat.
 
-const WORKER_VERSION = "1.8.48";
+const WORKER_VERSION = "1.8.49";
 
 const MEMORY_FILES = ["people.md", "reflections.md", "fragments.md", "loops.md"];
 const ARCHIVE_FILES = ["archive_people.md", "archive_reflections.md", "archive_fragments.md", "archive_loops.md"];
