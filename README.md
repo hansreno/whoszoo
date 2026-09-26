@@ -1,4 +1,4 @@
-# WhosWhoZoo
+# WhosZoo
 
 A personal AI memory assistant that runs entirely inside your own Cloudflare account.
 You chat with Claude about the people in your life — family, colleagues, clients — and it
