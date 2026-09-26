@@ -1,0 +1,19 @@
+name = "whoszoo-worker"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+account_id = "YOUR_CF_ACCOUNT_ID"
+
+[assets]
+directory = "../frontend"
+
+[[kv_namespaces]]
+binding = "MEMORY"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# Optional — only needed if you've enabled R2 on your account and want photo
+# attachments. The bucket is created by the web setup wizard
+# (whoszoo.app/setup); if you skipped that, comment this block out or
+# wrangler deploy will fail.
+[[r2_buckets]]
+binding = "DOWNLOADS"
+bucket_name = "whoszoo-files"

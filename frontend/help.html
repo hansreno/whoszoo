@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WhosWhoZoo — How It Works</title>
+  <link rel="icon" href="owl.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0f1e;
+      --surface: #1a2744;
+      --surface2: #243156;
+      --accent: #3b82f6;
+      --text: #e8dcc8;
+      --text-dim: #9aa3b8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100%;
+    }
+
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .page-header a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 12px;
+      border: 1px solid var(--surface2);
+      border-radius: var(--radius-sm);
+    }
+    .page-header a:hover { color: var(--text); border-color: var(--text-dim); }
+
+    /* Hero */
+    .hero {
+      margin-bottom: 48px;
+    }
+    .hero-owl {
+      width: 72px;
+      height: auto;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .hero-quote {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--surface2);
+    }
+
+    /* How it works cards */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .card-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .card-icon {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+
+    /* Commands table */
+    .cmd-group {
+      margin-bottom: 24px;
+    }
+    .cmd-group-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    .cmd-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cmd-row {
+      display: flex;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      align-items: baseline;
+    }
+    .cmd-row:hover { background: var(--surface2); }
+    .cmd-name {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      color: var(--green);
+      white-space: nowrap;
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+    .cmd-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .cmd-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .badge-free { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-tokens { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+    /* Header controls */
+    .controls-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-row {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+    }
+    .control-icon {
+      font-size: 18px;
+      min-width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .control-label {
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+    .control-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    /* Tips */
+    .tips-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tip {
+      font-size: 14px;
+      color: var(--text-dim);
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+      line-height: 1.5;
+    }
+    .tip strong { color: var(--text); }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 56px;
+      padding-top: 20px;
+      border-top: 1px solid var(--surface2);
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Back -->
+  <div class="page-header">
+    <a id="help-back-link" href="index.html">← Back to app</a>
+  </div>
+  <script>
+    const _from = new URLSearchParams(location.search).get("from");
+    const _back = document.getElementById("help-back-link");
+    if (_from === "settings") _back.textContent = "← Back to settings";
+    _back.addEventListener("click", e => { e.preventDefault(); history.back(); });
+  </script>
+
+  <!-- Hero -->
+  <div class="hero">
+    <img class="hero-owl" src="owl.png" alt="owl">
+    <div class="hero-quote">"Who's who in my zoo?"</div>
+    <h1>Most tools make you look things up.<br><span>WhosWhoZoo already knows.</span></h1>
+    <p class="hero-sub">It loads everything you've saved about people and answers from that — instantly and completely. Like talking to your own memory.</p>
+  </div>
+
+  <!-- Three-tier memory -->
+  <div class="section">
+    <h2>Your Three Memory Tiers</h2>
+    <div class="cards">
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title"><span class="card-icon">🖥️</span>Active — your desk</div>
+        <div class="card-desc">Four files always in front of Claude: <strong>people.md</strong>, <strong>reflections.md</strong>, <strong>fragments.md</strong>, <strong>loops.md</strong>. Every chat loads these automatically. This is your working memory — keep it lean and current.</div>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--amber);">
+        <div class="card-title"><span class="card-icon">📦</span>Archive — your filing cabinet</div>
+        <div class="card-desc">Older records you don't need every day but still want accessible. Tap <strong>📦 Archive</strong> once to include archive files in chat and search. Use <strong>/archive-review</strong> to let AI suggest what's ready to move here.</div>
+      </div>
+      <div class="card" style="border-left: 3px solid #a78bfa;">
+        <div class="card-title"><span class="card-icon">🔐</span>Cold Storage — rarely accessed, never auto-loaded</div>
+        <div class="card-desc">Records you want to keep long-term but rarely need. Cold storage files are <strong>never suggested for cleanup</strong> and are <strong>never loaded automatically</strong> — they only open when you ask. Use <strong>/deep [name]</strong> to move a record here. Run <strong>/recall [name]</strong> to search cold storage, or bare <strong>/recall</strong> to browse everything in it.</div>
+      </div>
+      <div class="card" style="background: var(--surface2);">
+        <div class="card-title" style="font-size:13px;color:var(--text-dim);">Moving records between tiers</div>
+        <div class="card-desc" style="font-size:13px;">Active → Archive: <code style="font-family:monospace;color:var(--green)">/archive [name]</code> or <code style="font-family:monospace;color:var(--green)">/archive-review</code><br>Archive → Cold Storage: <code style="font-family:monospace;color:var(--green)">/deep [name]</code> or <code style="font-family:monospace;color:var(--green)">/deep-review</code><br>Any tier → Active: <code style="font-family:monospace;color:var(--green)">/restore [name]</code></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="section">
+    <h2>How It Works</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">💾</span>Your memory, your files</div>
+        <div class="card-desc">Your notes live in your own account — not on WhosWhoZoo servers. You can export or delete everything anytime. There are 4 active files (people, reflections, fragments, loops), 4 archive files for older records, and 4 cold storage files for rarely accessed long-term records.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🧠</span>Claude reads everything, every time</div>
+        <div class="card-desc">Every question loads your entire active memory into Claude before answering — the whole file, not a search result. No guessing at which notes matter, and your archive is one toggle away when you need it, which is why it can make connections across people and topics.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">📦</span>Archive keeps it lean</div>
+        <div class="card-desc">Records you no longer need daily move to archive. Use the 📦 toggle to include archive files in chat and search. Cold storage is separate — use <strong>/recall</strong> to search it. Cold storage records are never loaded automatically.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🔒</span>Curated memory — no outside noise</div>
+        <div class="card-desc">Claude reads only what you've saved — not the internet, not anyone else's data. That's why answers stay grounded in your own notes instead of generic web knowledge. One practical tip: when two people share a first name, or you're unsure of a spelling, give the full name. A partial or misspelled name is the one case where it can land on the wrong record, or say it can't find someone who is in fact there — if that happens, reset the context and ask again with the full name.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🎙</span>Voice in, voice out</div>
+        <div class="card-desc">Tap the mic to enter conversation mode. Speak naturally. The app transcribes, sends to Claude, and reads the response aloud — with URLs and code replaced by verbal cues so it stays listenable.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy & Cost -->
+  <div class="section">
+    <h2>Privacy &amp; Cost</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🛡️</span>Your data never trains AI models</div>
+        <div class="card-desc">WhosWhoZoo uses the Anthropic API — not the Claude.ai website. API usage is explicitly excluded from model training under Anthropic's terms. Your notes are processed by Claude to answer your questions, but are never stored by Anthropic long-term or used to improve any AI model. If you use voice replies, the spoken text passes through ElevenLabs or OpenAI TTS — also under API terms that prohibit training use.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">☁️</span>Stored at the edge, not a central server</div>
+        <div class="card-desc">Your memory files are stored on Cloudflare's global network — the same infrastructure that powers millions of websites. There is no WhosWhoZoo database, no account to breach. Your data lives in your Cloudflare account, and inside the app your passphrase is what unlocks it. Worth knowing: the Cloudflare API token you used at setup can read those files directly, without your passphrase — which is exactly why we recommend deleting it once you're installed. Photos (if enabled) are stored in Cloudflare R2 object storage — free tier is 10 GB/month, though a credit card on file is required to activate R2 even at no cost.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">💳</span>No subscription — fill a bucket, use what you need</div>
+        <div class="card-desc">You add credits to your own Anthropic and OpenAI accounts (like prepaid balances) and pay only for what you use. That's a few dollars a month starting out, and it grows as your memory does — every question re-sends everything you've written, so a large, long-used memory costs more per question than a small one. Type <code>/costs</code> any time to see your running total, and set a daily cap in Settings. Voice replies use either OpenAI TTS (Marin &amp; Onyx voices, pay-as-you-go from the same OpenAI bucket) or ElevenLabs (Brittney &amp; Callum voices — also pay-as-you-go; a few dollars of ElevenLabs credit covers normal use). No required subscription — for any of it.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commands -->
+  <div class="section">
+    <h2>Commands</h2>
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">Type <code style="font-family:monospace;color:var(--green)">/</code> in the chat input to see autocomplete suggestions — command names are fuzzy-matched here, so you don't need to type them exactly.</p>
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px;"><span class="cmd-badge badge-free" style="display:inline;">free</span> — never uses your API credits &nbsp;&nbsp; <span class="cmd-badge badge-tokens" style="display:inline;">tokens</span> — draws from your Anthropic prepaid balance (typically &lt;$0.01) &nbsp;&nbsp; <span class="cmd-badge badge-free" style="display:inline;">free*</span> — free for bare browse; costs tokens when a search term is given</p>
+
+    <!-- People & Search -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Search &amp; Edit</div>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/edit [query]</span>
+          <span class="cmd-desc">Open a record in the editor — browse and edit without spending tokens</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/references [name]</span>
+          <span class="cmd-desc">Find every record that mentions a name or topic</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/recall [query]</span>
+          <span class="cmd-desc">Browse cold storage headings (bare /recall — free) or search by name/topic — Haiku finds matches (costs tokens). Tap a result to preview, restore, or add to chat context.</span>
+          <span class="cmd-badge badge-free">free*</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/browse [file]</span>
+          <span class="cmd-desc">List all record headings in a file — people / loops / archive people / cold fragments…</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/delete [query]</span>
+          <span class="cmd-desc">Permanently delete a record — requires typing "delete" to confirm</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journal -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Journal</div>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/journal &lt;entry&gt;</span>
+          <span class="cmd-desc">Polish and save a timestamped entry to reflections.md.</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/journal-flush [days]</span>
+          <span class="cmd-desc">Move entries older than N days to archive (default: 60)</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Archive -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Archive</div>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/archive [query]</span>
+          <span class="cmd-desc">Move a record to long-term archive</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/archive-review</span>
+          <span class="cmd-desc">AI suggests archive candidates · add [file] [deep] [context]</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/archive-review ignored</span>
+          <span class="cmd-desc">View and un-ignore dismissed archive suggestions</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep [query]</span>
+          <span class="cmd-desc">Move a record to cold storage (rarely accessed tier)</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep-review</span>
+          <span class="cmd-desc">AI suggests candidates for cold storage · add [file] [criteria]</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep-review ignored</span>
+          <span class="cmd-desc">View and un-ignore dismissed deep-review suggestions</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/restore [query]</span>
+          <span class="cmd-desc">Restore a record from archive or cold storage back to active memory</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Compact</div>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/compact [query]</span>
+          <span class="cmd-desc">Compact a specific record — choose Normal / Medium / High in the preview panel</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/compact-review · /compact-review [file]</span>
+          <span class="cmd-desc">Surface verbose records across memory — tap Load on each to pick a level. A running cost tally ("N previews loaded · est. ¢X") updates as you load previews.</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory Audit -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Memory Audit</div>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/audit</span>
+          <span class="cmd-desc">Scan for integrity issues — broken characters, format violations, date inconsistencies (quick scan)</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/audit deep</span>
+          <span class="cmd-desc">Adds near-duplicate and name-mismatch detection, plus photo integrity checks (broken references, orphaned files) — cost confirmed before running</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/audit ignored</span>
+          <span class="cmd-desc">View dismissed findings and un-ignore individual entries</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory tools -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Memory Tools</div>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/mnemonic [name] · /mnemonic [name: your text]</span>
+          <span class="cmd-desc">Generate memory hooks for a person, or save your own</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/memory-game</span>
+          <span class="cmd-desc">People memory quiz — 5 questions, then continue?</span>
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utility -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Utility</div>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/costs</span>
+          <span class="cmd-desc">Show today's and weekly Claude API cost estimate</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/diagnostics</span>
+          <span class="cmd-desc">System health: memory sizes, API keys, cost log, errors</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/security</span>
+          <span class="cmd-desc">Show recent login history — timestamp, location, device, and what happened — sign-ins, failed attempts, Access Key use, and every export or import</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/r</span>
+          <span class="cmd-desc">Reset conversation context (memory stays loaded)</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/cls</span>
+          <span class="cmd-desc">Clear chat history and context</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/export</span>
+          <span class="cmd-desc">Download an encrypted backup (.whoszoo) — includes all memory files and any stored photos. Asks for your passphrase first, and records the export in <code>/security</code>.</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/export-plain</span>
+          <span class="cmd-desc">Download a plain-text zip (unencrypted). Asks for your passphrase first, and records the export in <code>/security</code>.</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/import</span>
+          <span class="cmd-desc">Restore memory files from an encrypted backup. Asks for your passphrase first, and records the import in <code>/security</code>.</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/import-contacts</span>
+          <span class="cmd-desc">Import contacts from a .vcf (vCard) or .csv file — parses client-side and creates people.md records</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/help</span>
+          <span class="cmd-desc">Show command list in chat</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/l</span>
+          <span class="cmd-desc">Lock the app immediately</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/reset</span>
+          <span class="cmd-desc">Wipe all memory files to blank templates — requires typing your Access Key to confirm</span>
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory Audit -->
+  <div class="section" id="audit">
+    <h2>Memory Audit</h2>
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px;">The audit looks for <strong style="color:var(--text);">integrity issues</strong> in your memory — broken characters in metadata, malformed headers, date inconsistencies — separately from the size-based <em>memory lifecycle</em> nudges.</p>
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px;"><code style="font-family:monospace;color:var(--green)">/audit</code> runs the free Quick scan over your active and archived files. <code style="font-family:monospace;color:var(--green)">/audit deep</code> adds near-duplicate and name-mismatch detection, plus photo integrity checks — broken references (photo listed in a record but missing from storage) and orphaned files (in storage but not referenced anywhere). Cost confirmed before it runs. <code style="font-family:monospace;color:var(--green)">/audit ignored</code> lists findings you've dismissed and lets you un-ignore individual entries.</p>
+    <p style="font-size:14px;color:var(--text-dim);">Every finding has two actions: <strong style="color:var(--text);">Open</strong> (jumps to the record's edit modal so you can fix it) and <strong style="color:var(--text);">Ignore</strong> (suppresses that exact issue in future audits).</p>
+  </div>
+
+  <!-- Header controls -->
+  <div class="section">
+    <h2>Header Controls</h2>
+    <div class="controls-grid">
+      <div class="control-row">
+        <span class="control-icon">■</span>
+        <span class="control-label">Stop</span>
+        <span class="control-desc">Appears in place of the send button while Claude is generating a response. Tap it to cancel the response immediately. The send button returns automatically when the response finishes or is cancelled.</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">⚡</span>
+        <span class="control-label">Haiku / Sonnet</span>
+        <span class="control-desc">Tap to switch AI model. Haiku is fast and cheap. Sonnet is smarter for complex tasks.</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">📋</span>
+        <span class="control-label">Copy chat</span>
+        <span class="control-desc">Copies the full conversation to clipboard with You / WhosWhoZoo labels — useful for sharing or debugging.</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🎙</span>
+        <span class="control-label">Voice mode</span>
+        <span class="control-desc">Full conversation mode — speak in, hear the response. The 🎙 button in the chat header opens the full-screen orb overlay. After speaking, a Send button appears — tap it (or the orb) to fire. Tap ✕ to exit. Hold the orb to enter journal dictation mode. A separate mic button in the input bar handles voice-to-text for chat mode (tap to start, tap to stop).</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">⚙</span>
+        <span class="control-label">Settings</span>
+        <span class="control-desc">Update your Worker URL, change your passphrase, set up fingerprint unlock, manage API key overrides (Anthropic, OpenAI, ElevenLabs), configure auto-lock timeout, set a daily Anthropic spend cap ($1/$2/$5/$10/Never — default $1/day), choose your display language, toggle Token Saver (on by default — clears conversation history when you exit voice mode to save context tokens; turn off to preserve history across voice sessions), or sign out. Access key is only needed during initial setup or passphrase reset — Settings shows a reminder next to Change passphrase that it can be rotated at whoszoo.app/setup.</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🌐</span>
+        <span class="control-label">Language</span>
+        <span class="control-desc">Settings → Language dropdown. Choose English, Español, Français, or हिन्दी (Hindi). Affects all UI labels, buttons, toasts, and modal text. Commands always stay English — type <code style="font-family:monospace;color:var(--green)">/archive</code>, <code style="font-family:monospace;color:var(--green)">/edit</code>, etc. regardless of language. Claude responds in whatever language you write in — this setting does not change that. Takes effect on the next page reload (a reload prompt appears after changing).</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">💾</span>
+        <span class="control-label">cached badge</span>
+        <span class="control-desc">Appears when Claude's memory context was served from cache — faster and cheaper than a full reload.</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">📦</span>
+        <span class="control-label">Archive</span>
+        <span class="control-desc">Tap to include archive files in chat and search. Tap again to turn off. Cold storage is separate — use /recall to open it.</span>
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🔐</span>
+        <span class="control-label">Cold Storage</span>
+        <span class="control-desc">Shows how many records are in cold storage. Tap to browse them all. When a cold storage record is loaded for chat, a purple bar appears above the input — tap clear to remove it.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Input -->
+  <div class="section">
+    <h2>Voice Input Modes</h2>
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:16px;">Two transcription engines are available. Switch between them in <strong style="color:var(--text);">Settings → Voice input</strong>. The setting persists across sessions.</p>
+    <div class="cards">
+      <div class="card" style="border-left: 3px solid var(--accent);">
+        <div class="card-title"><span class="card-icon">⚡</span>Auto — fast, free, browser-native</div>
+        <div class="card-desc">Uses the browser's built-in Web Speech Recognition API. Instant — transcription appears as you speak. No API credits used. Accuracy depends on your browser and accent. Best for quick questions and most everyday use. On iOS, Auto always falls back to Whisper because iOS Safari does not support Web Speech API.</div>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--amber);">
+        <div class="card-title"><span class="card-icon">🎙</span>Whisper — accurate, small cost, slight delay</div>
+        <div class="card-desc">Sends audio to OpenAI's Whisper-1 model via your worker's <code style="font-family:monospace;color:var(--green)">/transcribe</code> endpoint. More accurate than Auto — especially for names, technical terms, and quieter environments. Costs a small fraction of a cent per clip (billed to your OpenAI account). Adds a 1–3 second round-trip while the audio is processed. Requires your OpenAI API key to be configured.</div>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title"><span class="card-icon">🌐</span>Voice Language — Whisper only</div>
+        <div class="card-desc">Settings → Voice Language. Sets the language Whisper listens for: English, हिन्दी (Hindi), Español, or Français. Defaults to English. Pinning the language prevents Whisper from hallucinating text on near-silent audio — a known Whisper quirk when no language is specified. Only applies to Whisper mode; Auto uses your browser's speech recognition which detects language on its own.</div>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--text-dim);">
+        <div class="card-title"><span class="card-icon">💾</span>Token Saver — Settings → Token Saver</div>
+        <div class="card-desc">Controls what happens to the conversation when you close voice mode. <strong>On (default):</strong> the conversation history is cleared on exit — frees up context tokens so the next session starts fresh. <strong>Off:</strong> conversation history is preserved — you can continue the chat exactly where you left off after closing voice mode. Turn it off if you want to carry context across voice sessions.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="section">
+    <h2>Tips</h2>
+    <div class="tips-list">
+      <div class="tip"><strong>Just ask naturally.</strong> You don't need commands for most things. "Who is Adam?" or "what do I know about the PTMM project?" work as plain questions.</div>
+      <div class="tip"><strong>Single words trigger tag search.</strong> Type a single word or phrase with no verb and the app searches all records for that tag exhaustively before answering.</div>
+      <div class="tip"><strong>Add a file scope to any search.</strong> <code style="font-family:monospace;color:var(--green)">/edit people adam</code> narrows to people.md. <code style="font-family:monospace;color:var(--green)">/archive loops</code> archives from loops.md only.</div>
+      <div class="tip"><strong>Open loops surface automatically on login.</strong> Each time you open the app, a 📋 Open loops card appears if any loops.md records are overdue, due today, due this week, have unchecked tasks, or were created in the last 7 days. Tap any row to open that loop in the editor.</div>
+      <div class="tip"><strong>Archive keeps Claude fast.</strong> Move stale records to archive. They're still searchable with the 📦 Archive toggle on — just not loaded in every chat message.</div>
+      <div class="tip"><strong>Voice skips URLs and code.</strong> In conversation mode, links say "see link in chat" and code says "see code in chat" — the full content is still in the chat bubble.</div>
+      <div class="tip"><strong>/r is your reset valve.</strong> If a conversation goes sideways, /r clears context without losing your memory files.</div>
+      <div class="tip"><strong>Bring cold storage records into chat.</strong> Use <strong>/recall [name]</strong> to find a cold storage record, then tap "Use in chat" — a purple bar appears above the input confirming the record is loaded. Claude will see it in every message until you tap clear.</div>
+      <div class="tip"><strong>Memory files are Markdown.</strong> When editing records directly with <code style="font-family:monospace;color:var(--green)">/edit</code>, headers use <code style="font-family:monospace;color:var(--green);">##</code>, bullets use <code style="font-family:monospace;color:var(--green);">-</code>, and bold uses <code style="font-family:monospace;color:var(--green);">**text**</code>. Not sure about the syntax? <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Markdown basic syntax →</a></div>
+      <div class="tip"><strong>Auto-lock preserves your conversation.</strong> If the app locks due to inactivity, your conversation history is intact. Unlock to continue exactly where you left off — Claude still has full context. Only a manual sign-out clears the conversation.</div>
+      <div class="tip"><strong>Install to your home screen for a native-app feel.</strong> The app works as a full-screen installed app on both platforms — no App Store required.<br><br>
+        <strong>Chrome, Edge, or Samsung Internet:</strong> after you log in, look for a one-tap <em>Install</em> banner above the message box — tap it and you're done. Doesn't appear on Safari/iPhone (no such option exists there) or if the app is already installed.<br><br>
+        <strong>Android (manual):</strong> Open your app URL in Chrome → tap the three-dot menu → <em>Add to Home Screen.</em><br>
+        <strong>iPhone:</strong> Open your app URL in Safari (not Chrome) → tap the Share button (square with arrow) → <em>Add to Home Screen.</em><br><br>
+        Once installed, the app launches without browser chrome. Biometric unlock (fingerprint or Face ID) may also become available if it wasn't working in the browser tab.</div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:0;">
+    <h2>Need more help?</h2>
+    <a id="support-link" href="support.html?from=help&amp;origin=app&amp;v=1.8.6" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-radius:var(--radius);text-decoration:none;color:var(--text);">
+      <span>
+        <span style="font-weight:600;font-size:15px;">Technical Reference &amp; Troubleshooting</span><br>
+        <span style="font-size:13px;color:var(--text-dim);">Memory lifecycle, Access Key, your Cloudflare token, API key management, clean reinstall, and common fixes</span>
+      </span>
+      <span style="color:var(--text-dim);font-size:18px;margin-left:12px;">→</span>
+    </a>
+    <script>
+      document.getElementById("support-link").href = "support.html?from=help&origin=" + (_from || "app") + "&depth=2&v=1.8.6";
+    </script>
+  </div>
+
+  <div class="page-footer">
+    WhosWhoZoo · <a id="help-footer-back" href="index.html" style="color:var(--text-dim);text-decoration:none;">← Back to app</a>
+  </div>
+  <script>
+    const _helpFooterBack = document.getElementById("help-footer-back");
+    if (_from === "settings") _helpFooterBack.textContent = "← Back to settings";
+    _helpFooterBack.addEventListener("click", e => { e.preventDefault(); history.back(); });
+  </script>
+
+</div>
+</body>
+</html>

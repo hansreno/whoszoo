@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WhosWhoZoo — Technical Reference</title>
+  <link rel="icon" href="owl.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0f1e;
+      --surface: #1a2744;
+      --surface2: #243156;
+      --accent: #3b82f6;
+      --text: #e8dcc8;
+      --text-dim: #9aa3b8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #a78bfa;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100%;
+    }
+
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .page-header a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 12px;
+      border: 1px solid var(--surface2);
+      border-radius: var(--radius-sm);
+    }
+    .page-header a:hover { color: var(--text); border-color: var(--text-dim); }
+    .page-header-title {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .lang-switcher { margin-left: auto; display: flex; gap: 8px; }
+    .lang-switcher a { font-size: 12px; padding: 4px 10px; }
+    .lang-switcher a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* Sections */
+    .section { margin-bottom: 48px; }
+    .section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--surface2);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+    .card-desc a { color: var(--accent); text-decoration: none; }
+    .card-desc a:hover { text-decoration: underline; }
+
+    /* Warning / caution box */
+    .callout {
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .callout-warn {
+      background: rgba(245,158,11,0.1);
+      border-left: 3px solid var(--amber);
+      color: var(--text-dim);
+    }
+    .callout-warn strong { color: var(--amber); }
+    .callout-info {
+      background: rgba(59,130,246,0.1);
+      border-left: 3px solid var(--accent);
+      color: var(--text-dim);
+    }
+    .callout-info strong { color: var(--accent); }
+    .callout-danger {
+      background: rgba(239,68,68,0.1);
+      border-left: 3px solid var(--red);
+      color: var(--text-dim);
+    }
+    .callout-danger strong { color: var(--red); }
+
+    /* Step list */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .step-num {
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step strong { color: var(--text); }
+    .step code {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 12px;
+      background: var(--surface2);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--green);
+    }
+
+    /* Key/value rows */
+    .kv-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kv-row {
+      display: flex;
+      gap: 12px;
+      padding: 9px 14px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      align-items: baseline;
+      font-size: 14px;
+    }
+    .kv-key {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 12px;
+      color: var(--green);
+      min-width: 200px;
+      flex-shrink: 0;
+    }
+    .kv-val {
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .kv-val a { color: var(--accent); text-decoration: none; }
+    .kv-val a:hover { text-decoration: underline; }
+
+    /* Troubleshoot rows */
+    .trouble-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .trouble {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .trouble-q {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .trouble-a {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .trouble-a a { color: var(--accent); text-decoration: none; }
+    .trouble-a a:hover { text-decoration: underline; }
+    .trouble-a code {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 12px;
+      background: var(--surface2);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--green);
+    }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 56px;
+      padding-top: 20px;
+      border-top: 1px solid var(--surface2);
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    .page-footer a { color: var(--text-dim); text-decoration: none; }
+    .page-footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Back -->
+  <div class="page-header">
+    <a id="support-back-link" href="help.html?v=1.6.12">← Help &amp; docs</a>
+    <span class="page-header-title">Technical Reference</span>
+    <div class="lang-switcher">
+      <a href="support.html" id="sw-en">EN</a>
+      <a href="help.es.html" id="sw-es">ES</a>
+      <a href="help.fr.html" id="sw-fr">FR</a>
+      <a href="help.hi.html" id="sw-hi">HI</a>
+    </div>
+  </div>
+  <script>
+    const _sp = new URLSearchParams(location.search);
+    const _from = _sp.get("from");
+    const _origin = _sp.get("origin") || "app";
+    const _depth = parseInt(_sp.get("depth")) || 1;
+    const _lang = _sp.get("lang") || "en";
+    const _back = document.getElementById("support-back-link");
+    const _BACK = {
+      en: { help: "← Help & docs", app: "← Back to app" },
+      es: { help: "← Ayuda y documentación", app: "← Volver a la app" },
+      fr: { help: "← Aide et docs", app: "← Retour à l’app" },
+      hi: { help: "← सहायता और दस्तावेज़", app: "← ऐप पर वापस" }
+    };
+    const _t = _BACK[_lang] || _BACK.en;
+    if (_from !== "help") _back.textContent = _t.app;
+    else _back.textContent = _t.help;
+    _back.addEventListener("click", e => { e.preventDefault(); history.back(); });
+    (document.getElementById("sw-" + _lang) || document.getElementById("sw-en")).classList.add("active");
+  </script>
+
+  <!-- Access Key -->
+  <div class="section">
+    <h2>Access Key</h2>
+
+    <div class="card">
+      <div class="card-title">What it is</div>
+      <div class="card-desc">The Access Key is a secret generated by the setup wizard when you first set up WhosWhoZoo. It's stored as a Cloudflare Worker secret and proves you are the owner of your worker. Think of it as a spare key for getting back in — not a second way to use the app. It can reset your passphrase, and that is all it can do: it cannot read your memory, sign you in, or export anything. Your passphrase is what protects your records.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">When it's used</div>
+      <div class="card-desc">
+        <strong style="color:var(--text);">Initial setup only:</strong> you enter it once on the first connection screen alongside your Worker URL, then choose a passphrase. After that, your passphrase handles all logins.<br><br>
+        <strong style="color:var(--text);">Passphrase recovery:</strong> if you forget your passphrase, enter the Access Key on the login screen instead. It bypasses the passphrase check and lets you set a new one.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">How to rotate it</div>
+      <div class="card-desc">The Access Key can only be rotated via the setup wizard at <a href="https://whoszoo.app/setup" target="_blank" rel="noopener">whoszoo.app/setup</a>. It auto-detects your existing install; check the "Rotate my Access Key" box on the Access Key step before deploying. Settings has a one-line pointer to this ("Access Key can be rotated at whoszoo.app/setup") next to Change passphrase, but rotation itself is not something the app can do — by design, a Worker cannot write its own secrets. Your passphrase is unaffected by key rotation.</div>
+    </div>
+
+    <div class="callout callout-warn">
+      <strong>If you lose your Access Key:</strong> you can still use your passphrase to log in normally. The Access Key is only needed for passphrase recovery. If you lose both, a clean reinstall is the only path forward (see below).
+    </div>
+  </div>
+
+  <!-- Cloudflare API Token -->
+  <div class="section">
+    <h2>Your Cloudflare API Token</h2>
+
+    <div class="card">
+      <div class="card-title">It is more powerful than your Access Key</div>
+      <div class="card-desc">The token you created during setup can read and change anything in your Cloudflare account — including your memory files, directly, without your passphrase. Everything WhosWhoZoo does to protect your memory happens inside the app: your passphrase, auto-lock, the Access Key limits, the security log. A live Cloudflare token goes around all of it, and nothing it does will ever appear in <code>/security</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">You can delete it — and we recommend it</div>
+      <div class="card-desc">Setup is the only thing that token is for. Your app doesn't use it: the Worker reaches your memory through internal bindings wired up at install time, not through the Cloudflare API. Delete the token and everything keeps working exactly as it does now. Go to <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">Cloudflare → My Profile → API Tokens</a> and delete the one you made during setup.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">You'll need a new one to update</div>
+      <div class="card-desc">That's expected and takes about a minute — create a fresh token with the same permissions, run the wizard at <a href="https://whoszoo.app/setup" target="_blank" rel="noopener">whoszoo.app/setup</a>, then delete it again. <strong>Please don't skip updates to avoid this.</strong> Running an old version is a bigger risk than briefly holding a token. Deleting a token only removes a way of administering your Cloudflare account — it never touches what's stored in it, so your memory, passphrase and Access Key are all unaffected.</div>
+    </div>
+
+    <div class="callout">
+      <strong>Prefer to keep it?</strong> That's a reasonable choice — just treat it like the password to your whole account. Store it in a password manager rather than a notes app, and turn on two-factor authentication for your Cloudflare login.
+    </div>
+  </div>
+
+  <!-- API Keys -->
+  <div class="section">
+    <h2>API Keys</h2>
+
+    <div class="kv-list" style="margin-bottom:16px;">
+      <div class="kv-row">
+        <span class="kv-key">ANTHROPIC_API_KEY</span>
+        <span class="kv-val">Claude AI — all chat and memory analysis. Check usage at <a href="https://console.anthropic.com/settings/cost" target="_blank">console.anthropic.com</a></span>
+      </div>
+      <div class="kv-row">
+        <span class="kv-key">OPENAI_API_KEY</span>
+        <span class="kv-val">Marin &amp; Onyx voices (TTS). Check usage at <a href="https://platform.openai.com/usage" target="_blank">platform.openai.com/usage</a></span>
+      </div>
+      <div class="kv-row">
+        <span class="kv-key">ELEVENLABS_API_KEY</span>
+        <span class="kv-val">Brittney &amp; Callum voices. Check usage at <a href="https://elevenlabs.io/app/subscription" target="_blank">elevenlabs.io/app/subscription</a></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Updating a key from within the app</div>
+      <div class="card-desc">Go to <strong style="color:var(--text);">Settings → API Keys</strong>. Paste your new key and tap Save. The field clears immediately — values are write-only and cannot be read back from the app. A <em>Clear override</em> link appears after saving; tapping it removes the app-saved key and reverts to the key set during installation.</div>
+    </div>
+
+    <div class="callout callout-info">
+      <strong>The Cloudflare API key is setup-only.</strong> It is used by the web setup wizard to deploy your worker — it is never stored in the app and does not appear in Settings.
+    </div>
+  </div>
+
+  <!-- Clean reinstall -->
+  <div class="section">
+    <h2>Clean Reinstall</h2>
+
+    <div class="callout callout-danger">
+      <strong>This deletes all your memory data.</strong> Export a backup first using <code style="font-family:monospace;font-size:12px;color:var(--green)">/export</code> in the chat. The exported zip contains all your memory files as plain text.
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">1</span>
+        <span>In the app, type <code>/export</code> and download your backup.</span>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <span>Go to the <strong>Cloudflare dashboard</strong> → Workers &amp; Pages → find <strong>whoszoo-worker</strong> → delete it.</span>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <span>In the Cloudflare dashboard → KV → find the <strong>MEMORY</strong> namespace → delete it. This removes all stored memory, auth config, and API key overrides.</span>
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <span>Go to <a href="https://whoszoo.app/setup" target="_blank" rel="noopener">whoszoo.app/setup</a> and run through it fresh. It will create a new worker, a new KV namespace, and generate a new Access Key.</span>
+      </div>
+      <div class="step">
+        <span class="step-num">5</span>
+        <span>After setup, use <code>/import</code> to restore your memory files from the backup zip.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- What lives where -->
+  <div class="section">
+    <h2>What Setup Deploys</h2>
+
+    <div class="kv-list">
+      <div class="kv-row">
+        <span class="kv-key">Cloudflare Worker</span>
+        <span class="kv-val">The app backend — handles all chat, memory reads/writes, and auth. Your Anthropic key lives there and never reaches your browser.</span>
+      </div>
+      <div class="kv-row">
+        <span class="kv-key">KV Namespace (MEMORY)</span>
+        <span class="kv-val">12 plain markdown files storing your memory, plus auth config, cost log, and API key overrides saved in-app.</span>
+      </div>
+      <div class="kv-row">
+        <span class="kv-key">Worker Secrets</span>
+        <span class="kv-val"><code style="font-family:monospace;font-size:12px;color:var(--green)">ANTHROPIC_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">OPENAI_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">ELEVENLABS_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">WORKER_KEY</code> (Access Key), <code style="font-family:monospace;font-size:12px;color:var(--green)">USER_NAME</code>. Write-only — not readable even via Cloudflare dashboard.</span>
+      </div>
+      <div class="kv-row">
+        <span class="kv-key">Frontend (static assets)</span>
+        <span class="kv-val">The app UI is served directly from the Worker via an assets binding — no separate Cloudflare Pages deployment needed.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory File Format & Seeding -->
+  <div class="section">
+    <h2>Memory File Format &amp; Seeding</h2>
+
+    <p style="color:var(--text-dim);font-size:15px;margin-bottom:18px;">All memory is stored as plain markdown files. Every record is a <code style="font-family:monospace;font-size:12px;color:var(--green)">## Section</code> header followed by free-form text. You can create or edit these files in any text editor and import them with <code style="font-family:monospace;font-size:12px;color:var(--green)">/import</code>. When editing records directly with <code style="font-family:monospace;font-size:12px;color:var(--green)">/edit</code>, a <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Markdown reference →</a> link appears above the edit textarea.</p>
+
+    <div class="card">
+      <div class="card-title">The 12 memory files</div>
+      <div class="card-desc">
+        <div class="kv-list" style="margin-top:8px;">
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">people.md</span><span class="kv-val">Active — people you know</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">loops.md</span><span class="kv-val">Active — open items, follow-ups, commitments</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">reflections.md</span><span class="kv-val">Active — journal entries and personal notes</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">fragments.md</span><span class="kv-val">Active — loose facts, ideas, observations</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">archive_people.md</span><span class="kv-val">Archive tier — people you've filed away</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">archive_loops.md</span><span class="kv-val">Archive tier — closed loops</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">archive_reflections.md</span><span class="kv-val">Archive tier</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">archive_fragments.md</span><span class="kv-val">Archive tier</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">deeparchive_people.md</span><span class="kv-val">Cold storage — searched via /recall only</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">deeparchive_loops.md</span><span class="kv-val">Cold storage</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">deeparchive_reflections.md</span><span class="kv-val">Cold storage</span></div>
+          <div class="kv-row"><span class="kv-key" style="min-width:220px;">deeparchive_fragments.md</span><span class="kv-val">Cold storage</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">File format</div>
+      <div class="card-desc">
+        <p style="margin-bottom:10px;">Each file is plain UTF-8 text. Records are separated by <code style="font-family:monospace;font-size:12px;color:var(--green)">## Heading</code> lines. Everything between two headings is one record. There is no required internal structure — Claude reads free-form prose just as well as bullet points.</p>
+        <pre style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--text-dim);overflow-x:auto;">## Jane Smith
+Works at Acme Corp, product manager. Met at the 2024 conference.
+Loves hiking. Has a dog named Biscuit.
+– Memory: important
+
+## Bob Jones
+Old college friend. Lives in Portland now.
+Hasn't been in touch since 2022.</pre>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Seeding memory from a zip file</div>
+      <div class="card-desc">
+        <p style="margin-bottom:10px;">You can pre-populate your memory by importing a <strong>plain-text zip</strong>. Create one in any zip tool — no special software needed.</p>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <span class="step-num">1</span>
+            <span>Create one or more <code>.md</code> files using the format above. You only need to include the files you want to import — the rest are left untouched.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <span>Zip them up. Files must be at the <strong>root of the zip</strong> (not inside a folder), and named exactly: <code>people.md</code>, <code>loops.md</code>, etc.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <span>In the app, type <code>/import</code> and select your zip file. You'll see a summary of what's in the zip and what will be skipped, then confirm with "overwrite".</span>
+          </div>
+        </div>
+        <div class="callout callout-info" style="margin-top:14px;">
+          <strong>Partial imports are safe.</strong> If your zip only contains <code>people.md</code>, only that file is overwritten. All other files stay as they are.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backups & Portability -->
+  <div class="section">
+    <h2>Backups &amp; Portability</h2>
+
+    <p style="color:var(--text-dim);font-size:15px;margin-bottom:18px;">WhosWhoZoo has two export formats. They serve different purposes and have different portability characteristics.</p>
+
+    <div class="card">
+      <div class="card-title">Encrypted backup — <code style="font-family:monospace;font-size:12px;color:var(--green)">/export</code> → <code style="font-family:monospace;font-size:12px;color:var(--green)">.whoszoo</code></div>
+      <div class="card-desc">
+        <p style="margin-bottom:10px;">Produces a single encrypted binary file. All 12 memory files are bundled together, compressed, and encrypted with AES-GCM using a password you choose. The encryption uses PBKDF2-SHA256 with 600,000 iterations — strong enough to resist brute-force attacks if you use a decent password.</p>
+        <p style="margin-bottom:10px;">Asks for your <strong>passphrase</strong> before exporting, and records the export in <code>/security</code>. Note the two passwords do different jobs: the one you type in the export dialog encrypts the resulting <em>file</em>, and whoever runs the export chooses it — so it protects the backup afterwards but authorises nothing. Your passphrase is what gates the export itself.</p>
+        <div class="callout callout-info" style="margin-top:10px;">
+          <strong>Fully portable.</strong> A <code>.whoszoo</code> file is not tied to your Cloudflare account, your Worker URL, or your Access Key. It can be decrypted and imported on <em>any</em> WhosWhoZoo installation — just supply the password you used when you exported it. This is the right format for migration, long-term backups, and disaster recovery.
+        </div>
+        <p style="margin-top:12px;color:var(--text-dim);font-size:14px;">The file can only be opened by WhosWhoZoo's <code>/import</code> command — there is no third-party tool that understands the format. If you lose your backup password, the file cannot be recovered. Store the password somewhere safe.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Plain-text zip — <code style="font-family:monospace;font-size:12px;color:var(--green)">/export-plain</code> → <code style="font-family:monospace;font-size:12px;color:var(--green)">.zip</code></div>
+      <div class="card-desc">
+        <p style="margin-bottom:10px;">Produces a standard zip containing your 12 <code>.md</code> files as plain text — readable in any text editor, importable with any zip tool. No password required to open.</p>
+        <div class="callout callout-danger" style="margin-top:10px;">
+          <strong>Unencrypted.</strong> Anyone who gets this file can read everything in your memory. Use it for editing or seeding, not for long-term storage. Asks for your passphrase before exporting, and records the export in <code>/security</code> — so a complete copy of your memory can't be taken from an unattended, logged-in device without you finding out.
+        </div>
+        <p style="margin-top:12px;color:var(--text-dim);font-size:14px;">Also portable — a plain-text zip can be imported on any installation. Partial zips work: include only the files you want to overwrite and the rest are left untouched.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Moving to a new Cloudflare account</div>
+      <div class="card-desc">
+        <div class="steps">
+          <div class="step">
+            <span class="step-num">1</span>
+            <span>In the app, type <code>/export</code>. Choose a strong password and download the <code>.whoszoo</code> file. Store the password somewhere safe — it cannot be recovered if lost.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <span>Run the setup wizard at <a href="https://whoszoo.app/setup" target="_blank" rel="noopener">whoszoo.app/setup</a> on the new Cloudflare account. This creates a new Worker, a new KV namespace, and a new Access Key.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <span>Open the app on the new installation, complete setup (set your passphrase), then type <code>/import</code>.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">4</span>
+            <span>Select your <code>.whoszoo</code> file and enter the backup password. Your memory files are restored exactly as they were.</span>
+          </div>
+        </div>
+        <div class="callout callout-info" style="margin-top:14px;">
+          The <code>.whoszoo</code> file is decrypted entirely in your browser — your backup password never leaves your device and is never sent to the worker or Cloudflare.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory Lifecycle -->
+  <div class="section">
+    <h2>Memory Lifecycle</h2>
+
+    <p style="color:var(--text-dim);font-size:15px;margin-bottom:18px;">Claude has a finite context window (~200K tokens). If active memory plus archive grows too large, chat requests fail. The three-tier system lets you keep every record forever while only loading what's currently relevant.</p>
+
+    <!-- Three tiers -->
+    <div class="card">
+      <div class="card-title">The three tiers</div>
+      <div class="card-desc">
+        <div class="kv-list" style="margin-top:8px;">
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:130px;">Active</span>
+            <span class="kv-val">The 4 live files (<code style="font-family:monospace;font-size:12px;color:var(--green)">people.md</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">reflections.md</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">fragments.md</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">loops.md</code>). Always loaded into Claude's context. ~180K token combined cap with archive.</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:130px;">Archive</span>
+            <span class="kv-val">The 4 <code style="font-family:monospace;font-size:12px;color:var(--green)">archive_*.md</code> files. Loaded only when the 📦 Archive toggle is ON. Older records that aren't current but might be relevant.</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:130px;">Cold storage</span>
+            <span class="kv-val">The 4 <code style="font-family:monospace;font-size:12px;color:var(--green)">deeparchive_*.md</code> files. Never auto-loaded. Searchable via <code style="font-family:monospace;font-size:12px;color:var(--green)">/recall</code>. Unlimited size — records here never count against Claude's context window.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Move records down -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Move records down the ladder (active → archive → cold)</div>
+      <div class="card-desc">
+        <div class="kv-list" style="margin-top:8px;">
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/archive [name]</code></span>
+            <span class="kv-val">Manual move to archive</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/archive-review</code></span>
+            <span class="kv-val">AI surfaces candidates from active → archive</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/deep [name]</code></span>
+            <span class="kv-val">Manual move to cold storage</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/deep-review</code></span>
+            <span class="kv-val">AI surfaces candidates from archive → cold storage</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;">Edit modal buttons</span>
+            <span class="kv-val">Open any record with <code style="font-family:monospace;font-size:12px;color:var(--green)">/edit [name]</code> — tap <strong>→ Archive</strong> or <strong>→ Cold</strong> to move in one tap</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Move records up -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Move records up the ladder (cold → archive → active)</div>
+      <div class="card-desc">
+        <div class="kv-list" style="margin-top:8px;">
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/restore [name]</code></span>
+            <span class="kv-val">Restore a record from archive or cold storage back to active — works from any tier</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inspect -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Inspect what's where</div>
+      <div class="card-desc">
+        <div class="kv-list" style="margin-top:8px;">
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/browse [tier] [file]</code></span>
+            <span class="kv-val">List all records in a file with token sizes. Examples: <code style="font-family:monospace;font-size:12px;color:var(--green)">/browse people</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">/browse archive people</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">/browse cold fragments</code></span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/diagnostics</code></span>
+            <span class="kv-val">Full memory state with per-tier breakdown, usage percentage, and track-aware suggestions when a threshold is crossed</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/recall [name or topic]</code></span>
+            <span class="kv-val">Search cold storage by heading. Bare <code style="font-family:monospace;font-size:12px;color:var(--green)">/recall</code> browses all cold records grouped by file.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Compact within a tier (alternative to moving)</div>
+      <div class="card-desc">
+        <div class="kv-list" style="margin-top:8px;">
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/compact [name]</code></span>
+            <span class="kv-val">Shrink a single verbose record in place — choose Normal / Medium / High level in the preview</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:200px;"><code style="font-family:monospace;font-size:12px;color:var(--green)">/compact-review</code></span>
+            <span class="kv-val">AI surfaces the most verbose records across active memory — tap Load on each to choose a level</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teaching nudges -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Login-time teaching nudges</div>
+      <div class="card-desc">
+        <p style="margin-bottom:10px;">At every login WhosWhoZoo checks combined memory (active + archive) against the 180K token cap. If a threshold is crossed, a system message appears in chat:</p>
+        <div class="kv-list" style="margin-top:8px;">
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:80px;">70%</span>
+            <span class="kv-val">First time: full intro explaining the three tiers and what to do next. Subsequent crossings: a one-line nudge with the relevant commands.</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:80px;">85%</span>
+            <span class="kv-val">Stronger nudge. If archive is large, suggests cold storage commands alongside archive tools.</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key" style="min-width:80px;">95%</span>
+            <span class="kv-val">Urgent — turning Archive ON will push the total past Claude's context window and cause requests to fail.</span>
+          </div>
+        </div>
+        <p style="margin-top:12px;font-size:14px;color:var(--text-dim);">The intro message only fires once per "growth cycle" — the flag resets if you drop below 50% (e.g. after a big archiving session), allowing re-introduction if memory grows again later.</p>
+        <p style="margin-top:8px;font-size:14px;color:var(--text-dim);"><code style="font-family:monospace;font-size:12px;color:var(--green)">/diagnostics</code> also shows a 💡 Suggestions block with track-aware commands whenever a threshold is crossed.</p>
+      </div>
+    </div>
+
+    <!-- When to do what -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">When to do what</div>
+      <div class="card-desc">
+        <div class="steps" style="margin-top:6px;">
+          <div class="step">
+            <span class="step-num">1</span>
+            <span><strong>First few months:</strong> just type. Memory grows naturally. No action needed.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <span><strong>When 70% hits:</strong> start archiving. Run <code>/archive-review</code> or open a record with <code>/edit</code> and tap → Archive.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <span><strong>When 85%+ hits with a substantial archive:</strong> time for cold storage. Run <code>/deep-review</code> or tap → Cold in the edit modal.</span>
+          </div>
+          <div class="step">
+            <span class="step-num">4</span>
+            <span><strong>Don't worry about losing records.</strong> <code>/recall</code> finds anything in cold storage. <code>/restore</code> brings it back in one command.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info" style="margin-top:14px;">
+      <strong>Context window overflow error.</strong> If combined memory exceeds the limit mid-session, the worker returns an actionable error message instead of a raw API failure — it tells you exactly which command to run to reduce size.
+    </div>
+  </div>
+
+  <!-- Memory Audit -->
+  <div class="section">
+    <h2>Memory Audit</h2>
+
+    <p style="color:var(--text-dim);font-size:15px;margin-bottom:18px;">The audit checks for integrity issues in your memory files — it does <em>not</em> nudge you on memory size (that's the Memory Lifecycle teaching ladder above).</p>
+
+    <div class="card">
+      <div class="card-title">What it checks</div>
+      <div class="card-desc">Broken metadata characters, malformed section headers, date inconsistencies, near-duplicates, and name typos. The first three are free (pure regex). Near-duplicates and name mismatches use Haiku.</div>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <div class="card-title">Commands</div>
+      <div class="card-desc">
+        <code style="font-family:monospace;font-size:12px;color:var(--green)">/audit</code> — free Quick scan over active and archived files.<br>
+        <code style="font-family:monospace;font-size:12px;color:var(--green)">/audit deep</code> — Quick scan + Haiku-assisted deep scan (~3¢). You confirm the cost estimate before any API call is made.<br>
+        <code style="font-family:monospace;font-size:12px;color:var(--green)">/audit ignored</code> — list dismissed findings; per-row Un-ignore + manual Prune ghosts button.
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <div class="card-title">Findings are read-only</div>
+      <div class="card-desc">Every fix is manual via the existing Edit Record modal — the audit never writes to your memory. Each finding card has two actions: <strong style="color:var(--text);">Open</strong> (jumps to the edit modal) and <strong style="color:var(--text);">Ignore</strong> (suppresses that exact issue in future audits). Ignored findings persist in KV and auto-prune if the target record is deleted.</div>
+    </div>
+  </div>
+
+  <!-- Troubleshooting -->
+  <div class="section">
+    <h2>Troubleshooting</h2>
+    <div class="trouble-list">
+      <div class="trouble">
+        <div class="trouble-q">Claude isn't responding or returns an error</div>
+        <div class="trouble-a">Your Anthropic API key may be invalid, exhausted, or not yet active. Go to <strong>Settings → API Keys → Anthropic</strong> and paste a fresh key. Check your credit balance at <a href="https://console.anthropic.com/settings/cost" target="_blank">console.anthropic.com</a>.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">Claude returns "daily spend cap reached" (402 error)</div>
+        <div class="trouble-a">Your daily Anthropic spend cap has been reached. Go to <strong>Settings → Daily spend cap</strong> and increase the limit or set it to Never. The cap resets at midnight UTC. OpenAI TTS and ElevenLabs voices are unaffected — only Claude API calls are capped.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">Claude returns "cap check failed" (503 error)</div>
+        <div class="trouble-a">The worker could not read the daily cap state from KV. This is a transient error — the cap check fails closed (blocks requests) to protect against runaway spending. Try again in a moment. If it persists, check your Cloudflare Workers status page.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">Voices aren't working</div>
+        <div class="trouble-a">Check which voice is selected (Marin/Onyx use OpenAI; Brittney/Callum use ElevenLabs). Go to <strong>Settings → API Keys</strong> and update the relevant key. If the key is fine, check your usage quota at the provider's dashboard.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">I forgot my passphrase</div>
+        <div class="trouble-a">On the login screen, tap <strong>Forgot passphrase?</strong> and enter your Access Key instead. This lets you set a new passphrase without losing your data.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">The app shows the setup screen instead of login</div>
+        <div class="trouble-a">This happens in a fresh browser or incognito window — the saved Worker URL isn't available. Enter your Worker URL (<code>https://whoszoo-worker.&lt;your-account&gt;.workers.dev</code>), your Access Key, and set a passphrase to connect.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">I saved a bad API key and now things are broken</div>
+        <div class="trouble-a">Go to <strong>Settings → API Keys</strong>. Find the affected key and tap <strong>Clear override</strong> (appears under keys you've saved in-app). This removes the bad value and reverts to the key set during setup.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">The app auto-locked and I can't remember my timeout setting</div>
+        <div class="trouble-a">Log back in with your passphrase, then go to <strong>Settings → Auto-lock</strong> to change the timeout. The default is 30 minutes of inactivity.</div>
+      </div>
+      <div class="trouble">
+        <div class="trouble-q">I want to move my data to a new Cloudflare account</div>
+        <div class="trouble-a">See <strong>Backups &amp; Portability → Moving to a new Cloudflare account</strong> above for step-by-step instructions. The short version: export with <code>/export</code>, run the setup wizard fresh on the new account at <a href="https://whoszoo.app/setup" target="_blank" rel="noopener">whoszoo.app/setup</a>, then restore with <code>/import</code> using your backup password. Your <code>.whoszoo</code> file is not tied to your old account — it works on any installation.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    WhosWhoZoo · <a id="support-footer-help" href="#">← Help &amp; docs</a> &nbsp;·&nbsp; <a id="support-footer-app" href="#">← Back to app</a>
+  </div>
+  <script>
+    const _fh = document.getElementById("support-footer-help");
+    const _fa = document.getElementById("support-footer-app");
+    _fh.textContent = _t.help;
+    _fa.textContent = _t.app;
+    _fh.addEventListener("click", e => { e.preventDefault(); history.back(); });
+    _fa.addEventListener("click", e => { e.preventDefault(); history.go(-_depth); });
+    if (_from !== "help") _fh.style.display = "none";
+  </script>
+
+</div>
+</body>
+</html>

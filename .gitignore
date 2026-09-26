@@ -1,0 +1,4 @@
+node_modules/
+worker/wrangler.toml
+worker/.env
+.DS_Store

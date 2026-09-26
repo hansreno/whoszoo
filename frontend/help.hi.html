@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WhosWhoZoo — कैसे काम करता है</title> <!-- needs-review -->
+  <link rel="icon" href="owl.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0f1e;
+      --surface: #1a2744;
+      --surface2: #243156;
+      --accent: #3b82f6;
+      --text: #e8dcc8;
+      --text-dim: #9aa3b8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Devanagari", sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100%;
+    }
+
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .page-header a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 12px;
+      border: 1px solid var(--surface2);
+      border-radius: var(--radius-sm);
+    }
+    .page-header a:hover { color: var(--text); border-color: var(--text-dim); }
+
+    .lang-switcher { margin-left: auto; display: flex; gap: 8px; }
+    .lang-switcher a { font-size: 12px; padding: 4px 10px; }
+    .lang-switcher a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .lang-switcher span { font-size: 12px; padding: 4px 10px; color: var(--accent); font-weight: 700; border: 1px solid var(--accent); border-radius: var(--radius-sm); }
+
+    /* Hero */
+    .hero {
+      margin-bottom: 48px;
+    }
+    .hero-owl {
+      width: 72px;
+      height: auto;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .hero-quote {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--surface2);
+    }
+
+    /* How it works cards */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .card-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .card-icon {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+
+    /* Commands table */
+    .cmd-group {
+      margin-bottom: 24px;
+    }
+    .cmd-group-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    .cmd-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cmd-row {
+      display: flex;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      align-items: baseline;
+    }
+    .cmd-row:hover { background: var(--surface2); }
+    .cmd-name {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      color: var(--green);
+      white-space: nowrap;
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+    .cmd-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .cmd-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .badge-free { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-tokens { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+    /* Header controls */
+    .controls-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-row {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+    }
+    .control-icon {
+      font-size: 18px;
+      min-width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .control-label {
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+    .control-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    /* Tips */
+    .tips-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tip {
+      font-size: 14px;
+      color: var(--text-dim);
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+      line-height: 1.5;
+    }
+    .tip strong { color: var(--text); }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 56px;
+      padding-top: 20px;
+      border-top: 1px solid var(--surface2);
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Back + Lang switcher -->
+  <div class="page-header">
+    <a id="help-back-link" href="index.html">← ऐप पर वापस जाएं</a> <!-- needs-review -->
+    <div class="lang-switcher">
+      <a href="help.html">EN</a>
+      <a href="help.es.html">ES</a>
+      <a href="help.fr.html">FR</a>
+      <span>HI</span>
+    </div>
+  </div>
+  <script>
+    const _from = new URLSearchParams(location.search).get("from");
+    const _back = document.getElementById("help-back-link");
+    if (_from === "settings") _back.textContent = "← सेटिंग्स पर वापस जाएं"; // needs-review
+    _back.addEventListener("click", e => { e.preventDefault(); history.back(); });
+  </script>
+
+  <!-- Hero -->
+  <div class="hero">
+    <img class="hero-owl" src="owl.png" alt="owl">
+    <div class="hero-quote">"मेरे चिड़ियाघर में कौन कौन है?"</div> <!-- needs-review -->
+    <h1>ज़्यादातर टूल आपसे चीज़ें ढूंढवाते हैं।<br><span>WhosWhoZoo पहले से जानता है।</span></h1> <!-- needs-review -->
+    <p class="hero-sub">जो कुछ आपने लोगों के बारे में सहेजा है वह सब लोड करता है और वहीं से जवाब देता है — तुरंत और पूरी तरह। जैसे अपनी ही मेमोरी से बात करना।</p> <!-- needs-review -->
+  </div>
+
+  <!-- Three-tier memory -->
+  <div class="section">
+    <h2>आपकी मेमोरी के तीन स्तर</h2> <!-- needs-review -->
+    <div class="cards">
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title"><span class="card-icon">🖥️</span>सक्रिय — आपकी डेस्कटॉप</div> <!-- needs-review -->
+        <div class="card-desc">Claude के लिए हमेशा उपलब्ध चार फाइलें: <strong>people.md</strong>, <strong>reflections.md</strong>, <strong>fragments.md</strong>, <strong>loops.md</strong>। हर बातचीत में ये अपने-आप लोड होती हैं। यह आपकी काम करने वाली मेमोरी है — इसे हल्का और अपडेट रखें।</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--amber);">
+        <div class="card-title"><span class="card-icon">📦</span>आर्काइव — आपका फाइल कैबिनेट</div> <!-- needs-review -->
+        <div class="card-desc">पुराने रिकॉर्ड जिनकी आपको रोज़ ज़रूरत नहीं लेकिन फिर भी एक्सेस करना चाहते हैं। आर्काइव फाइलों को चैट और सर्च में शामिल करने के लिए <strong>📦 आर्काइव</strong> एक बार टैप करें। AI से सुझाव पाने के लिए <strong>/archive-review</strong> इस्तेमाल करें।</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid #a78bfa;">
+        <div class="card-title"><span class="card-icon">🔐</span>कोल्ड स्टोरेज — कभी-कभार एक्सेस, कभी अपने-आप लोड नहीं होता</div> <!-- needs-review -->
+        <div class="card-desc">वे रिकॉर्ड जिन्हें आप दीर्घकालिक रखना चाहते हैं लेकिन शायद ही कभी ज़रूरत पड़ती है। कोल्ड स्टोरेज फाइलें <strong>कभी साफ़ करने के लिए सुझाई नहीं जातीं</strong> और <strong>कभी अपने-आप लोड नहीं होतीं</strong> — तभी खुलती हैं जब आप मांगें। किसी रिकॉर्ड को यहां भेजने के लिए <strong>/deep [नाम]</strong> इस्तेमाल करें। कोल्ड स्टोरेज में खोजने के लिए <strong>/recall [नाम]</strong> चलाएं, या सब कुछ देखने के लिए सिर्फ <strong>/recall</strong>।</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="background: var(--surface2);">
+        <div class="card-title" style="font-size:13px;color:var(--text-dim);">स्तरों के बीच रिकॉर्ड ले जाएं</div> <!-- needs-review -->
+        <div class="card-desc" style="font-size:13px;">सक्रिय → आर्काइव: <code style="font-family:monospace;color:var(--green)">/archive [नाम]</code> या <code style="font-family:monospace;color:var(--green)">/archive-review</code><br>आर्काइव → कोल्ड स्टोरेज: <code style="font-family:monospace;color:var(--green)">/deep [नाम]</code> या <code style="font-family:monospace;color:var(--green)">/deep-review</code><br>कोई भी स्तर → सक्रिय: <code style="font-family:monospace;color:var(--green)">/restore [नाम]</code></div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="section">
+    <h2>यह कैसे काम करता है</h2> <!-- needs-review -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">💾</span>आपकी मेमोरी, आपकी फाइलें</div> <!-- needs-review -->
+        <div class="card-desc">आपके नोट्स आपके अपने अकाउंट में रहते हैं — WhosWhoZoo के सर्वर पर नहीं। आप किसी भी समय सब कुछ एक्सपोर्ट या डिलीट कर सकते हैं। 4 सक्रिय फाइलें (people, reflections, fragments, loops), पुराने रिकॉर्ड के लिए 4 आर्काइव फाइलें, और लंबे समय तक रखने वाले रिकॉर्ड के लिए 4 कोल्ड स्टोरेज फाइलें हैं।</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🧠</span>Claude हर बार सब कुछ पढ़ता है</div> <!-- needs-review -->
+        <div class="card-desc">हर सवाल से पहले Claude आपकी पूरी सक्रिय मेमोरी लोड करता है — पूरी फ़ाइल, कोई सर्च नतीजा नहीं। कौन-सा नोट काम का है, इसका अंदाज़ा लगाने की ज़रूरत नहीं, और ज़रूरत पड़ने पर आपका आर्काइव एक टैप दूर है — इसीलिए वह लोगों और विषयों के बीच संबंध जोड़ सकता है।</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">📦</span>आर्काइव सब कुछ हल्का रखता है</div> <!-- needs-review -->
+        <div class="card-desc">जिन रिकॉर्ड की रोज़ ज़रूरत नहीं वे आर्काइव में चले जाते हैं। आर्काइव फाइलों को चैट और सर्च में शामिल करने के लिए 📦 बटन इस्तेमाल करें। कोल्ड स्टोरेज अलग है — उसे खोलने के लिए <strong>/recall</strong> इस्तेमाल करें। कोल्ड स्टोरेज रिकॉर्ड कभी अपने-आप लोड नहीं होते।</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🔒</span>सोच-समझकर बनाई मेमोरी — बाहरी शोर नहीं</div> <!-- needs-review -->
+        <div class="card-desc">Claude सिर्फ वही पढ़ता है जो आपने सहेजा है — कोई इंटरनेट नहीं, दूसरों का डेटा नहीं। इसीलिए जवाब वेब की सामान्य जानकारी के बजाय आपके अपने नोट्स पर टिके रहते हैं। एक काम की सलाह: जब दो लोगों का पहला नाम एक जैसा हो, या वर्तनी को लेकर संदेह हो, तो पूरा नाम दें। अधूरा या गलत लिखा नाम ही वह अकेला मामला है जहाँ यह गलत रिकॉर्ड तक पहुँच सकता है, या कह सकता है कि कोई व्यक्ति नहीं मिला जबकि वह मौजूद है — ऐसा हो तो कॉन्टेक्स्ट रीसेट करें और पूरा नाम देकर दोबारा पूछें।</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🎙</span>आवाज़ से इनपुट, आवाज़ से आउटपुट</div> <!-- needs-review -->
+        <div class="card-desc">बातचीत मोड में जाने के लिए माइक टैप करें। स्वाभाविक रूप से बोलें। ऐप ट्रांसक्राइब करता है, Claude को भेजता है और जवाब ज़ोर से पढ़ता है — URLs और कोड को मौखिक संकेतों से बदल देता है ताकि सुनना आसान हो।</div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy & Cost -->
+  <div class="section">
+    <h2>गोपनीयता और लागत</h2> <!-- needs-review -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🛡️</span>आपका डेटा AI मॉडल ट्रेन नहीं करता</div> <!-- needs-review -->
+        <div class="card-desc">WhosWhoZoo Anthropic API इस्तेमाल करता है — Claude.ai वेबसाइट नहीं। Anthropic की शर्तों के अनुसार API उपयोग मॉडल ट्रेनिंग से स्पष्ट रूप से बाहर है। आपके नोट्स Claude द्वारा आपके सवालों का जवाब देने के लिए प्रोसेस होते हैं, लेकिन Anthropic उन्हें दीर्घकालिक स्टोर नहीं करता और किसी AI मॉडल को बेहतर बनाने के लिए इस्तेमाल नहीं करता। अगर आप वॉइस रिस्पॉन्स इस्तेमाल करते हैं, तो बोला गया टेक्स्ट ElevenLabs या OpenAI TTS से गुज़रता है — ये भी API शर्तों के अधीन हैं जो ट्रेनिंग के लिए इस्तेमाल से रोकते हैं।</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">☁️</span>केंद्रीय सर्वर नहीं, एज पर स्टोर</div> <!-- needs-review -->
+        <div class="card-desc">आपकी मेमोरी फाइलें Cloudflare के वैश्विक नेटवर्क में स्टोर होती हैं — वही इन्फ्रास्ट्रक्चर जो लाखों वेबसाइटों को चलाता है। WhosWhoZoo का कोई डेटाबेस नहीं, हैक होने के लिए कोई अकाउंट नहीं। आपका डेटा आपके Cloudflare अकाउंट में रहता है, और ऐप के भीतर उसे आपका पासफ़्रेज़ ही खोलता है। जानने लायक बात: सेटअप में इस्तेमाल किया गया Cloudflare API टोकन उन फ़ाइलों को सीधे पढ़ सकता है, बिना आपके पासफ़्रेज़ के — इसीलिए हम इंस्टॉल पूरा होने पर उसे मिटा देने की सलाह देते हैं। फ़ोटो (यदि सक्षम हों) Cloudflare R2 ऑब्जेक्ट स्टोरेज में संग्रहीत होती हैं — फ्री टियर 10 GB/माह है, हालाँकि बिना शुल्क के भी R2 सक्रिय करने के लिए फाइल पर क्रेडिट कार्ड आवश्यक है।</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">💳</span>कोई सब्सक्रिप्शन नहीं — बैलेंस डालें, जितना ज़रूरी इस्तेमाल करें</div> <!-- needs-review -->
+        <div class="card-desc">आप अपने Anthropic और OpenAI अकाउंट में क्रेडिट जोड़ते हैं (प्रीपेड बैलेंस की तरह) और सिर्फ उतना भुगतान करते हैं जितना इस्तेमाल करते हैं। शुरुआत में यह महीने के कुछ डॉलर होते हैं, और जैसे-जैसे आपकी मेमोरी बढ़ती है वैसे-वैसे यह भी बढ़ता है — हर सवाल के साथ आपने अब तक जो कुछ भी लिखा है वह दोबारा भेजा जाता है, इसलिए एक बड़ी और लंबे समय से इस्तेमाल हो रही मेमोरी हर सवाल पर छोटी मेमोरी से ज़्यादा खर्च करती है। अपना अब तक का कुल खर्च देखने के लिए कभी भी <code>/costs</code> टाइप करें, और सेटिंग्स में एक दैनिक सीमा तय करें। वॉइस रिस्पॉन्स OpenAI TTS (Marin और Onyx आवाज़ें, उसी OpenAI बैलेंस से pay-as-you-go) या ElevenLabs (Brittney और Callum आवाज़ें — यह भी pay-as-you-go है; ElevenLabs क्रेडिट के कुछ डॉलर सामान्य उपयोग के लिए पर्याप्त हैं) इस्तेमाल करते हैं। इसमें से किसी के लिए भी कोई अनिवार्य सब्सक्रिप्शन नहीं।</div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Commands -->
+  <div class="section">
+    <h2>कमांड</h2> <!-- needs-review -->
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">ऑटोकम्पलीट सुझाव देखने के लिए चैट फील्ड में <code style="font-family:monospace;color:var(--green)">/</code> टाइप करें — कमांड के नाम फ़ज़ी मैच होते हैं, इसलिए उन्हें हूबहू टाइप करने की ज़रूरत नहीं।</p> <!-- needs-review -->
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px;"><span class="cmd-badge badge-free" style="display:inline;">free</span> — आपके API क्रेडिट कभी इस्तेमाल नहीं होते &nbsp;&nbsp; <span class="cmd-badge badge-tokens" style="display:inline;">tokens</span> — Anthropic प्रीपेड बैलेंस से कटता है (आमतौर पर &lt;$0.01) &nbsp;&nbsp; <span class="cmd-badge badge-free" style="display:inline;">free*</span> — देखने के लिए फ्री; सर्च टर्म देने पर tokens लगते हैं</p> <!-- needs-review -->
+
+    <!-- Search & Edit -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">खोज और संपादन</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/edit [query]</span>
+          <span class="cmd-desc">एक रिकॉर्ड एडिटर में खोलें — tokens खर्च किए बिना नेविगेट और एडिट करें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/references [name]</span>
+          <span class="cmd-desc">सभी रिकॉर्ड खोजें जो किसी नाम या विषय का उल्लेख करते हैं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/recall [query]</span>
+          <span class="cmd-desc">कोल्ड स्टोरेज हेडिंग देखें (/recall अकेले — फ्री) या नाम/विषय से खोजें — Haiku मिलान ढूंढता है (tokens लगते हैं)। परिणाम टैप करके प्रीव्यू करें, रिस्टोर करें या चैट संदर्भ में जोड़ें।</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free*</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/browse [file]</span>
+          <span class="cmd-desc">किसी फाइल में सभी रिकॉर्ड हेडिंग सूचीबद्ध करें — people / loops / archive people / cold fragments…</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/delete [query]</span>
+          <span class="cmd-desc">एक रिकॉर्ड स्थायी रूप से हटाएं — पुष्टि के लिए "delete" टाइप करना ज़रूरी</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journal -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">डायरी</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/journal &lt;entry&gt;</span>
+          <span class="cmd-desc">reflections.md में टाइमस्टैम्प के साथ एक प्रविष्टि पॉलिश और सहेजें।</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/journal-flush [days]</span>
+          <span class="cmd-desc">N दिन से पुरानी प्रविष्टियां आर्काइव में भेजें (डिफ़ॉल्ट: 60)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Archive -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">आर्काइव</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/archive [query]</span>
+          <span class="cmd-desc">एक रिकॉर्ड दीर्घकालिक आर्काइव में भेजें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/archive-review</span>
+          <span class="cmd-desc">AI आर्काइव के लिए उम्मीदवार सुझाता है · [file] [deep] [context] जोड़ें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/archive-review ignored</span>
+          <span class="cmd-desc">खारिज किए गए आर्काइव सुझावों की अनदेखी देखें और हटाएं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep [query]</span>
+          <span class="cmd-desc">एक रिकॉर्ड कोल्ड स्टोरेज में भेजें (कभी-कभार एक्सेस स्तर)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep-review</span>
+          <span class="cmd-desc">AI कोल्ड स्टोरेज के लिए उम्मीदवार सुझाता है · [file] [criteria] जोड़ें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep-review ignored</span>
+          <span class="cmd-desc">खारिज किए गए deep-review सुझावों की अनदेखी देखें और हटाएं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/restore [query]</span>
+          <span class="cmd-desc">आर्काइव या कोल्ड स्टोरेज से एक रिकॉर्ड सक्रिय मेमोरी में वापस लाएं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">कम्पैक्ट करें</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/compact [query]</span>
+          <span class="cmd-desc">एक विशिष्ट रिकॉर्ड कम्पैक्ट करें — प्रीव्यू पैनल में Normal / Medium / High चुनें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/compact-review · /compact-review [file]</span>
+          <span class="cmd-desc">पूरी मेमोरी में लंबे रिकॉर्ड खोजें — हर एक में Load टैप करके स्तर चुनें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory Audit -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">मेमोरी ऑडिट</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/audit</span>
+          <span class="cmd-desc">अखंडता समस्याएं जांचें — टूटे वर्ण, फ़ॉर्मेट उल्लंघन, तारीख असंगतियां (त्वरित स्कैन)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/audit deep</span>
+          <span class="cmd-desc">Haiku-सहायक नज़दीकी डुप्लीकेट और नाम-बेमेल पहचान जोड़ता है, साथ ही फ़ोटो अखंडता जाँच (टूटे संदर्भ, अनाथ फाइलें) — चलाने से पहले लागत की पुष्टि</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/audit ignored</span>
+          <span class="cmd-desc">खारिज किए गए निष्कर्ष देखें और व्यक्तिगत प्रविष्टियों की अनदेखी हटाएं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory tools -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">मेमोरी टूल</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/mnemonic [name] · /mnemonic [name: your text]</span>
+          <span class="cmd-desc">किसी व्यक्ति के लिए याद करने में मदद बनाएं, या अपनी खुद की सहेजें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/memory-game</span>
+          <span class="cmd-desc">लोगों का मेमोरी गेम — 5 सवाल, फिर जारी रखें?</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utility -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">उपयोगिता</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/costs</span>
+          <span class="cmd-desc">आज और इस हफ्ते का अनुमानित Claude API खर्च दिखाएं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/diagnostics</span>
+          <span class="cmd-desc">सिस्टम स्थिति: मेमोरी आकार, API कुंजियां, लागत लॉग, त्रुटियां</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/security</span>
+          <span class="cmd-desc">हालिया गतिविधि दिखाएं — टाइमस्टैम्प, स्थान, डिवाइस और क्या हुआ: लॉगिन, विफल प्रयास, Access Key का उपयोग, और हर एक्सपोर्ट या इमपोर्ट</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/r</span>
+          <span class="cmd-desc">बातचीत का संदर्भ रीसेट करें (मेमोरी लोड रहती है)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/cls</span>
+          <span class="cmd-desc">चैट इतिहास और संदर्भ मिटाएं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/export</span>
+          <span class="cmd-desc">एन्क्रिप्टेड बैकअप (.whoszoo) डाउनलोड करें — इसमें सभी मेमोरी फाइलें और संग्रहीत फ़ोटो शामिल हैं। पहले आपकी फ्रेज़ पूछी जाएगी, और यह एक्सपोर्ट <code>/security</code> में दर्ज होता है।</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/export-plain</span>
+          <span class="cmd-desc">सादा टेक्स्ट zip (एन्क्रिप्ट नहीं) डाउनलोड करें। पहले आपकी फ्रेज़ पूछी जाएगी, और यह एक्सपोर्ट <code>/security</code> में दर्ज होता है।</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/import</span>
+          <span class="cmd-desc">एन्क्रिप्टेड बैकअप से मेमोरी फाइलें रिस्टोर करें। पहले आपकी फ्रेज़ पूछी जाएगी, और यह इम्पोर्ट <code>/security</code> में दर्ज होता है।</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/import-contacts</span>
+          <span class="cmd-desc">.vcf (vCard) या .csv फ़ाइल से संपर्क इंपोर्ट करें — people.md में रिकॉर्ड बनाता है</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/help</span>
+          <span class="cmd-desc">चैट में कमांड सूची दिखाएं</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/l</span>
+          <span class="cmd-desc">ऐप तुरंत लॉक करें</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/reset</span>
+          <span class="cmd-desc">सभी मेमोरी फाइलें खाली टेम्पलेट में मिटाएं — पुष्टि के लिए अपनी Access Key टाइप करनी होगी</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory Audit -->
+  <div class="section" id="audit">
+    <h2>मेमोरी ऑडिट</h2> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px;">ऑडिट आपकी मेमोरी में <strong style="color:var(--text);">अखंडता समस्याएं</strong> खोजता है — मेटाडेटा में टूटे वर्ण, गलत-फ़ॉर्मेट हेडिंग, तारीख असंगतियां — आकार-आधारित <em>मेमोरी लाइफसाइकल</em> सूचनाओं से स्वतंत्र।</p> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px;"><code style="font-family:monospace;color:var(--green)">/audit</code> आपके सक्रिय और आर्काइव फाइलों पर फ्री त्वरित स्कैन चलाता है। <code style="font-family:monospace;color:var(--green)">/audit deep</code> Haiku-सहायक नज़दीकी डुप्लीकेट और नाम-बेमेल पहचान जोड़ता है, साथ ही फ़ोटो अखंडता जाँच: टूटे संदर्भ (फ़ोटो रिकॉर्ड में सूचीबद्ध है पर स्टोरेज में नहीं) और अनाथ फाइलें (स्टोरेज में हैं पर कहीं संदर्भित नहीं)। कुछ सेंट — चलाने से पहले बजट की पुष्टि करते हैं। <code style="font-family:monospace;color:var(--green)">/audit ignored</code> उन निष्कर्षों की सूची देता है जो आपने खारिज किए हैं और व्यक्तिगत प्रविष्टियों की अनदेखी हटाने देता है।</p> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);">हर निष्कर्ष के दो विकल्प हैं: <strong style="color:var(--text);">खोलें</strong> (रिकॉर्ड संपादन मोडल में जाएं ताकि आप सुधार सकें) और <strong style="color:var(--text);">अनदेखा करें</strong> (भविष्य के ऑडिट में वही समस्या दबाएं)।</p> <!-- needs-review -->
+  </div>
+
+  <!-- Header controls -->
+  <div class="section">
+    <h2>हेडर नियंत्रण</h2> <!-- needs-review -->
+    <div class="controls-grid">
+      <div class="control-row">
+        <span class="control-icon">■</span>
+        <span class="control-label">रोकें</span> <!-- needs-review -->
+        <span class="control-desc">जब Claude जवाब बना रहा हो तब Send बटन की जगह दिखता है। जवाब तुरंत रद्द करने के लिए टैप करें। जवाब पूरा होने या रद्द होने पर Send बटन अपने-आप वापस आ जाता है।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">⚡</span>
+        <span class="control-label">Haiku / Sonnet</span>
+        <span class="control-desc">AI मॉडल बदलने के लिए टैप करें। Haiku तेज़ और किफायती है। Sonnet जटिल कामों के लिए अधिक स्मार्ट है।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">📋</span>
+        <span class="control-label">चैट कॉपी करें</span> <!-- needs-review -->
+        <span class="control-desc">पूरी बातचीत आप / WhosWhoZoo लेबल के साथ क्लिपबोर्ड पर कॉपी करें — साझा करने या डीबग करने के लिए उपयोगी।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🎙</span>
+        <span class="control-label">वॉइस मोड</span> <!-- needs-review -->
+        <span class="control-desc">पूर्ण बातचीत मोड — बोलें और जवाब सुनें। चैट हेडर में 🎙 बटन फुल-स्क्रीन ओर्ब ओवरले खोलता है। बोलने के बाद Send बटन दिखता है — भेजने के लिए उसे (या ओर्ब को) टैप करें। बाहर निकलने के लिए ✕ टैप करें। ओर्ब को देर तक दबाएं डायरी डिक्टेशन मोड के लिए। इनपुट बार में अलग माइक बटन चैट मोड के लिए वॉइस-टू-टेक्स्ट संभालता है (शुरू करने के लिए टैप करें, रोकने के लिए टैप करें)।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">⚙</span>
+        <span class="control-label">सेटिंग्स</span> <!-- needs-review -->
+        <span class="control-desc">Worker URL अपडेट करें, पासवर्ड बदलें, फिंगरप्रिंट अनलॉक सेट करें, API कुंजी ओवरराइड प्रबंधित करें (Anthropic, OpenAI, ElevenLabs), ऑटो-लॉक टाइम सेट करें, Anthropic का दैनिक खर्च सीमा तय करें ($1/$2/$5/$10/कभी नहीं — डिफ़ॉल्ट $1/दिन), अपनी डिस्प्ले भाषा चुनें, Token Saver चालू/बंद करें (डिफ़ॉल्ट रूप से चालू — वॉइस मोड से बाहर निकलने पर बातचीत का इतिहास मिटा देता है ताकि context tokens बचें; वॉइस सेशन के बीच इतिहास सुरक्षित रखने के लिए इसे बंद करें), या साइन आउट करें। Access Key केवल प्रारंभिक सेटअप या पासवर्ड रीसेट के दौरान ज़रूरी है — Settings में पासवर्ड बदलें के पास एक रिमाइंडर दिखता है कि इसे whoszoo.app/setup पर बदला जा सकता है।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🌐</span>
+        <span class="control-label">भाषा</span> <!-- needs-review -->
+        <span class="control-desc">Settings → भाषा ड्रॉपडाउन। English, Español, Français या हिन्दी (Hindi) चुनें। सभी UI लेबल, बटन, टोस्ट और मोडल टेक्स्ट पर असर होता है। कमांड हमेशा अंग्रेज़ी में रहते हैं — <code style="font-family:monospace;color:var(--green)">/archive</code>, <code style="font-family:monospace;color:var(--green)">/edit</code> आदि किसी भी भाषा में टाइप करें। Claude उसी भाषा में जवाब देता है जिसमें आप लिखते हैं — यह सेटिंग उसे नहीं बदलती। अगले पेज रीलोड पर प्रभावी होती है (बदलने के बाद रीलोड प्रॉम्प्ट आता है)।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">💾</span>
+        <span class="control-label">cached बैज</span> <!-- needs-review -->
+        <span class="control-desc">तब दिखता है जब Claude का मेमोरी संदर्भ कैश से मिला — पूरी रीलोड से तेज़ और सस्ता।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">📦</span>
+        <span class="control-label">आर्काइव</span> <!-- needs-review -->
+        <span class="control-desc">चैट और सर्च में आर्काइव फाइलें शामिल करने के लिए टैप करें। बंद करने के लिए फिर टैप करें। कोल्ड स्टोरेज अलग है — उसे खोलने के लिए /recall इस्तेमाल करें।</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🔐</span>
+        <span class="control-label">कोल्ड स्टोरेज</span> <!-- needs-review -->
+        <span class="control-desc">कोल्ड स्टोरेज में कितने रिकॉर्ड हैं दिखाता है। सब देखने के लिए टैप करें। जब कोल्ड स्टोरेज रिकॉर्ड चैट के लिए लोड होता है, इनपुट फील्ड के ऊपर बैंगनी पट्टी दिखती है — हटाने के लिए clear टैप करें।</span> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Input -->
+  <div class="section">
+    <h2>वॉइस इनपुट मोड</h2> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:16px;">दो ट्रांसक्रिप्शन इंजन उपलब्ध हैं। <strong style="color:var(--text);">Settings → Voice Input</strong> में उनके बीच स्विच करें। सेटिंग सेशन के बीच बनी रहती है।</p> <!-- needs-review -->
+    <div class="cards">
+      <div class="card" style="border-left: 3px solid var(--accent);">
+        <div class="card-title"><span class="card-icon">⚡</span>Auto — तेज़, फ्री, ब्राउज़र-नेटिव</div> <!-- needs-review -->
+        <div class="card-desc">ब्राउज़र की बिल्ट-इन Web Speech Recognition API इस्तेमाल करता है। तात्कालिक — बोलते समय ट्रांसक्रिप्शन दिखता है। कोई API क्रेडिट नहीं लगते। सटीकता आपके ब्राउज़र और लहज़े पर निर्भर करती है। त्वरित सवालों और अधिकांश रोज़मर्रा के उपयोग के लिए आदर्श। iOS पर Auto हमेशा Whisper पर fallback करता है क्योंकि iOS Safari Web Speech API support नहीं करता।</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--amber);">
+        <div class="card-title"><span class="card-icon">🎙</span>Whisper — सटीक, न्यूनतम लागत, हल्की देरी</div> <!-- needs-review -->
+        <div class="card-desc">आपके worker के <code style="font-family:monospace;color:var(--green)">/transcribe</code> endpoint के ज़रिए OpenAI के Whisper-1 मॉडल को ऑडियो भेजता है। Auto से अधिक सटीक — खासकर नामों, तकनीकी शब्दों और कम शोर वाले माहौल के लिए। प्रति क्लिप एक छोटे सेंट का भाग खर्च होता है (आपके OpenAI अकाउंट पर)। ऑडियो प्रोसेस होते समय 1-3 सेकंड की देरी होती है। OpenAI API key कॉन्फ़िगर होनी ज़रूरी है।</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title"><span class="card-icon">🌐</span>वॉइस भाषा — केवल Whisper</div> <!-- needs-review -->
+        <div class="card-desc">Settings → Voice Language. Whisper किस भाषा में सुनेगा यह तय करता है: English, हिन्दी (Hindi), Español, या Français। डिफ़ॉल्ट English है। भाषा पिन करने से Whisper लगभग-मौन ऑडियो पर गलत टेक्स्ट नहीं बनाता — यह Whisper की एक जानी-मानी समस्या है जब कोई भाषा नहीं बताई जाती। केवल Whisper मोड पर लागू होता है; Auto ब्राउज़र के स्पीच रिकग्निशन का उपयोग करता है जो खुद भाषा पहचानता है।</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--text-dim);">
+        <div class="card-title"><span class="card-icon">💾</span>Token Saver — Settings → Token Saver</div> <!-- needs-review -->
+        <div class="card-desc">वॉइस मोड बंद करने पर बातचीत का क्या होता है यह नियंत्रित करता है। <strong>चालू (डिफ़ॉल्ट):</strong> बाहर निकलने पर बातचीत का इतिहास मिट जाता है — context tokens खाली हो जाते हैं ताकि अगला सेशन नए सिरे से शुरू हो। <strong>बंद:</strong> बातचीत का इतिहास सुरक्षित रहता है — वॉइस मोड बंद करने के बाद आप ठीक वहीं से चैट जारी रख सकते हैं जहां छोड़ा था। अगर आप वॉइस सेशन के बीच संदर्भ बनाए रखना चाहते हैं तो इसे बंद करें।</div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="section">
+    <h2>सुझाव</h2> <!-- needs-review -->
+    <div class="tips-list">
+      <div class="tip"><strong>स्वाभाविक रूप से पूछें।</strong> ज़्यादातर चीज़ों के लिए आपको कमांड की ज़रूरत नहीं। "Adam कौन है?" या "मैं PTMM project के बारे में क्या जानता हूं?" सीधे सवालों की तरह काम करते हैं।</div> <!-- needs-review -->
+      <div class="tip"><strong>अकेले शब्द टैग सर्च चालू करते हैं।</strong> बिना क्रिया के एक शब्द या वाक्यांश टाइप करें और ऐप जवाब देने से पहले सभी रिकॉर्ड में उस टैग को गहराई से खोजता है।</div> <!-- needs-review -->
+      <div class="tip"><strong>किसी भी सर्च में फाइल स्कोप जोड़ें।</strong> <code style="font-family:monospace;color:var(--green)">/edit people adam</code> सर्च को people.md तक सीमित करता है। <code style="font-family:monospace;color:var(--green)">/archive loops</code> केवल loops.md से आर्काइव करता है।</div> <!-- needs-review -->
+      <div class="tip"><strong>आर्काइव Claude को चुस्त रखता है।</strong> पुराने रिकॉर्ड आर्काइव में भेजें। 📦 आर्काइव बटन चालू होने पर भी खोजे जा सकते हैं — बस हर चैट संदेश में लोड नहीं होते।</div> <!-- needs-review -->
+      <div class="tip"><strong>वॉइस मोड में URLs और कोड स्किप होते हैं।</strong> बातचीत मोड में, लिंक "चैट में लिंक देखें" कहते हैं और कोड "चैट में कोड देखें" — पूरा कंटेंट चैट बबल में रहता है।</div> <!-- needs-review -->
+      <div class="tip"><strong>/r आपका रीसेट वाल्व है।</strong> अगर बातचीत भटक जाए, /r संदर्भ मिटा देता है बिना मेमोरी फाइलें खोए।</div> <!-- needs-review -->
+      <div class="tip"><strong>कोल्ड स्टोरेज रिकॉर्ड चैट में जोड़ें।</strong> कोल्ड स्टोरेज रिकॉर्ड खोजने के लिए <strong>/recall [नाम]</strong> इस्तेमाल करें, फिर "चैट में इस्तेमाल करें" टैप करें — इनपुट फील्ड के ऊपर बैंगनी पट्टी दिखती है जो पुष्टि करती है कि रिकॉर्ड लोड है। जब तक आप clear न टैप करें Claude हर संदेश में इसे देखेगा।</div> <!-- needs-review -->
+      <div class="tip"><strong>मेमोरी फाइलें Markdown हैं।</strong> <code style="font-family:monospace;color:var(--green)">/edit</code> से सीधे रिकॉर्ड संपादित करते समय, हेडिंग <code style="font-family:monospace;color:var(--green);">##</code> इस्तेमाल करते हैं, बुलेट <code style="font-family:monospace;color:var(--green);">-</code> इस्तेमाल करते हैं और बोल्ड <code style="font-family:monospace;color:var(--green);">**text**</code> इस्तेमाल करते हैं। सिंटैक्स पक्का नहीं? <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Markdown बेसिक सिंटैक्स →</a></div> <!-- needs-review -->
+      <div class="tip"><strong>होम स्क्रीन पर इंस्टॉल करें नेटिव ऐप अनुभव के लिए।</strong> ऐप दोनों प्लेटफॉर्म पर फुल-स्क्रीन इंस्टॉल्ड ऐप की तरह काम करता है — कोई App Store ज़रूरी नहीं।<br><br>
+        <strong>Chrome, Edge या Samsung Internet:</strong> लॉगिन करने के बाद, मैसेज बॉक्स के ऊपर एक-टैप <em>इंस्टॉल</em> बैनर देखें — उसे टैप करें, बस हो गया। Safari/iPhone पर नहीं दिखता (वहाँ यह विकल्प मौजूद नहीं है) और न ही अगर ऐप पहले से इंस्टॉल है।<br><br>
+        <strong>Android (मैनुअल):</strong> Chrome में अपनी ऐप URL खोलें → तीन-बिंदु मेनू टैप करें → <em>होम स्क्रीन पर जोड़ें।</em><br>
+        <strong>iPhone:</strong> Safari में अपनी ऐप URL खोलें (Chrome नहीं) → शेयर बटन (ऊपर तीर वाला बॉक्स) टैप करें → <em>होम स्क्रीन पर जोड़ें।</em><br><br>
+        एक बार इंस्टॉल होने पर, ऐप ब्राउज़र क्रोम के बिना खुलती है। बायोमेट्रिक अनलॉक (फिंगरप्रिंट या Face ID) भी उपलब्ध हो सकता है अगर ब्राउज़र टैब में काम नहीं करता था।</div> <!-- needs-review -->
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:0;">
+    <h2>और मदद चाहिए?</h2> <!-- needs-review -->
+    <a id="support-link" href="support.html?from=help&amp;origin=app&amp;lang=hi&amp;v=1.8.6" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-radius:var(--radius);text-decoration:none;color:var(--text);">
+      <span>
+        <span style="font-weight:600;font-size:15px;">तकनीकी संदर्भ और समस्या निवारण</span><br> <!-- needs-review -->
+        <span style="font-size:13px;color:var(--text-dim);">मेमोरी लाइफसाइकल, Access Key, आपका Cloudflare टोकन, API key प्रबंधन, साफ़ पुनर्स्थापना और सामान्य समाधान</span> <!-- needs-review -->
+      </span>
+      <span style="color:var(--text-dim);font-size:18px;margin-left:12px;">→</span>
+    </a>
+    <script>
+      document.getElementById("support-link").href = "support.html?from=help&origin=" + (_from || "app") + "&depth=2&lang=hi&v=1.8.6";
+    </script>
+  </div>
+
+  <div class="page-footer">
+    WhosWhoZoo · <a id="help-footer-back" href="index.html" style="color:var(--text-dim);text-decoration:none;">← ऐप पर वापस जाएं</a> <!-- needs-review -->
+  </div>
+  <script>
+    const _helpFooterBack = document.getElementById("help-footer-back");
+    if (_from === "settings") _helpFooterBack.textContent = "← सेटिंग्स पर वापस जाएं"; // needs-review
+    _helpFooterBack.addEventListener("click", e => { e.preventDefault(); history.back(); });
+  </script>
+
+</div>
+</body>
+</html>

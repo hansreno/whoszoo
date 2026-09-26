@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<!-- v2.15 -->
+<html lang="en" id="html-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WhosWhoZoo</title>
+  <link rel="icon" href="owl.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0f1e">
+  <link rel="stylesheet" href="style.css?v=1.8.48">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="locales.js?v=1.8.48"></script>
+</head>
+<body>
+
+  <!-- Settings / Login Screen -->
+  <div id="settings-screen" class="screen hidden">
+    <div class="settings-container">
+      <h1 class="settings-title">WhosWhoZoo</h1>
+      <p id="settings-subtitle" class="settings-subtitle">Connect your memory to get started.</p>
+      <p class="settings-privacy-note" data-i18n="setup.privacy-note">Your notes are stored in your own private account — never used to train AI, and never sent to us.</p>
+
+      <!-- Setup form — first-time or recovery -->
+      <div id="setup-form" class="settings-form">
+        <label class="settings-label" data-i18n="setup.label-worker-url">Worker URL</label>
+        <input id="settings-url" class="settings-input" type="url" data-i18n-placeholder="setup.ph-worker-url" placeholder="https://your-worker.workers.dev" autocomplete="off">
+        <label class="settings-label"><span data-i18n="setup.label-access-key">Access Key</span> <span class="settings-label-hint" data-i18n="setup.label-access-key-hint">(from setup)</span></label>
+        <input id="settings-key" class="settings-input" type="password" data-i18n-placeholder="setup.ph-access-key" placeholder="Paste your access key" autocomplete="off">
+        <label class="settings-label" data-i18n="setup.label-passphrase">Choose a passphrase</label>
+        <input id="setup-passphrase" class="settings-input" type="password" data-i18n-placeholder="setup.ph-passphrase" placeholder="At least 12 characters" autocomplete="new-password">
+        <label class="settings-label" data-i18n="setup.label-confirm">Confirm passphrase</label>
+        <input id="setup-passphrase-confirm" class="settings-input" type="password" data-i18n-placeholder="setup.ph-confirm" placeholder="Confirm passphrase" autocomplete="new-password">
+        <button id="settings-save" class="btn-primary" data-i18n="setup.btn-setup">Set Up</button>
+      </div>
+
+      <!-- Login form — returning user / lock screen -->
+      <div id="login-form" class="settings-form hidden">
+        <label class="settings-label" data-i18n="login.label-passphrase">Passphrase</label>
+        <input id="login-passphrase" class="settings-input" type="password" data-i18n-placeholder="login.ph-passphrase" placeholder="Enter your passphrase" autocomplete="current-password">
+        <button id="login-btn" class="btn-primary" data-i18n="login.btn-unlock">Unlock</button>
+        <button id="login-biometric-btn" class="btn-secondary hidden" data-i18n="login.btn-biometric">Use fingerprint</button>
+        <button id="login-forgot-btn" class="settings-text-btn" data-i18n="login.btn-forgot">Forgot passphrase? Use access key to reset →</button>
+      </div>
+
+      <!-- Logged-in settings panel -->
+      <div id="settings-panel" class="settings-form hidden">
+        <div id="panel-main">
+          <button id="panel-back-btn" class="back-chip" style="margin-bottom:16px;" data-i18n="settings.btn-back">← Back to app</button>
+          <button id="panel-change-passphrase" class="settings-action-row">Change passphrase <span class="settings-action-chevron">→</span></button>
+          <!-- Rotating the Access Key is deliberately NOT possible from in here:
+               a Worker cannot write its own secrets, and giving it a Cloudflare
+               API token to do so would put a standing account credential inside
+               the app. Keeping it outside also means a hijacked session cannot
+               replace the recovery credential. This line exists only so a user
+               who suspects their key has leaked knows where to go. -->
+          <p class="settings-action-note" data-i18n-html="settings.access-key-note">Access Key can be rotated at <a href='https://whoszoo.app/setup' target='_blank' rel='noopener'>whoszoo.app/setup</a></p>
+          <button id="panel-biometric" class="settings-action-row">Set up fingerprint unlock <span class="settings-action-chevron">→</span></button>
+          <!-- Hidden by default; shown by showSettingsPanel() only when
+               beforeinstallprompt has ever fired in this session (Chromium)
+               or the app is already installed. iOS gets nothing here —
+               Help & docs already carries the manual Share → Add to Home
+               Screen steps, and there is no API to offer anything better. -->
+          <button id="panel-install" class="settings-action-row" style="display:none;">Install to home screen <span class="settings-action-chevron">→</span></button>
+          <a href="help.html?from=settings&amp;v=1.8.48" class="settings-action-row"><span data-i18n="settings.btn-help">Help &amp; docs</span> <span class="settings-action-chevron">→</span></a>
+          <!-- Shares the PRODUCT page, never this install. Every user runs their
+               own copy at their own URL, so the only thing they can otherwise
+               hand someone is their address bar — i.e. the login page to their
+               own memory. The shared text hard-codes whoszoo.app and never
+               reads WORKER_URL, which is what makes the wrong thing impossible
+               rather than merely discouraged. -->
+          <button id="panel-share" class="settings-action-row"><span data-i18n="settings.btn-share">Recommend WhosWhoZoo to a friend</span> <span class="settings-action-chevron">→</span></button>
+          <!-- Sign out is destructive; separated from navigation rows by an
+               explicit divider so it doesn't get lumped in with Help & docs. -->
+          <div class="settings-panel-divider" style="margin-top:8px;"></div>
+          <button id="panel-signout" class="settings-action-row settings-signout-row" data-i18n="settings.btn-signout">Sign out</button>
+          <div class="settings-panel-divider" style="margin-top:16px;"></div>
+          <div class="settings-row-inline">
+            <label class="settings-label" style="margin:0;" data-i18n="settings.label-language">Language</label>
+            <select id="panel-language" class="settings-select">
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="hi">हिन्दी</option>
+            </select>
+          </div>
+          <div class="settings-row-inline" style="margin-top:8px;">
+            <label class="settings-label" style="margin:0;" data-i18n="settings.label-voice">Voice input</label>
+            <select id="panel-voice-input" class="settings-select">
+              <option value="auto" data-i18n="settings.opt-auto">Auto</option>
+              <option value="whisper" data-i18n="settings.opt-whisper">Whisper (accurate)</option>
+            </select>
+          </div>
+          <div class="settings-row-inline" style="margin-top:8px;">
+            <label class="settings-label" style="margin:0;" data-i18n="settings.label-whisper-lang">Voice language</label>
+            <select id="panel-whisper-lang" class="settings-select">
+              <option value="en">English</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+            </select>
+          </div>
+          <div class="settings-row-inline" style="margin-top:8px;">
+            <label class="settings-label" style="margin:0;" data-i18n="settings.label-autolock">Auto-lock</label>
+            <select id="panel-timeout" class="settings-select">
+              <option value="1">1 min</option>
+              <option value="5">5 min</option>
+              <option value="15">15 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="60">1 hour</option>
+              <option value="0" data-i18n="settings.opt-never">Never</option>
+            </select>
+          </div>
+          <div class="settings-row-inline" style="margin-top:8px;">
+            <label class="settings-label" style="margin:0;" data-i18n="settings.label-cap">Daily spend cap</label>
+            <select id="panel-cost-cap" class="settings-select">
+              <option value="1" selected>$1/day</option>
+              <option value="2">$2/day</option>
+              <option value="5">$5/day</option>
+              <option value="10">$10/day</option>
+              <option value="0" data-i18n="settings.opt-never">Never</option>
+            </select>
+          </div>
+          <div class="settings-row-inline" style="margin-top:8px;">
+            <label class="settings-label" style="margin:0;" data-i18n="settings.label-token-saver">Token Saver</label>
+            <select id="panel-token-saver" class="settings-select">
+              <option value="on" selected data-i18n="settings.opt-on">On</option>
+              <option value="off" data-i18n="settings.opt-off">Off</option>
+            </select>
+          </div>
+          <button id="panel-advanced-toggle" class="settings-advanced-toggle">Advanced <span id="panel-advanced-caret" class="settings-advanced-caret">›</span></button>
+          <div id="panel-advanced" class="hidden">
+            <label class="settings-label" style="margin-top:8px;" data-i18n="settings.label-worker-url-adv">Worker URL</label>
+            <p class="settings-label-hint" style="margin-bottom:8px;" data-i18n="settings.hint-worker-url-adv">Only change this if you redeployed to a new address.</p>
+            <input id="panel-url" class="settings-input" type="url" autocomplete="off">
+            <button id="panel-save-url" class="btn-secondary" style="margin-top:4px;" data-i18n="settings.btn-test-save">Test &amp; Save</button>
+          </div>
+          <button id="panel-apikeys-toggle" class="settings-advanced-toggle">API Keys <span id="panel-apikeys-caret" class="settings-advanced-caret">›</span></button>
+          <div id="panel-apikeys" class="hidden">
+            <p class="settings-label-hint" style="margin-bottom:10px;" data-i18n="settings.hint-apikeys">Write-only — values are stored on your worker. Leave blank to keep the current key.</p>
+            <label class="settings-label">Anthropic <span class="apikey-purpose">· Claude AI — chat &amp; memory analysis</span></label>
+            <div class="settings-row-inline" style="gap:8px; margin-bottom:2px;">
+              <input id="apikey-anthropic" class="settings-input" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+              <button id="apikey-anthropic-save" class="btn-edit-save apikey-save-btn" data-i18n-title="tooltip.apikey-save" data-i18n="settings.apikey-btn-save">Save</button>
+            </div>
+            <div class="settings-apikey-status-row">
+              <span id="apikey-anthropic-status" class="settings-label-hint apikey-status"></span>
+              <button id="apikey-anthropic-clear" class="settings-text-btn apikey-clear-btn hidden" data-i18n-title="tooltip.apikey-clear" data-i18n="settings.apikey-btn-clear">Clear override</button>
+            </div>
+            <label class="settings-label" style="margin-top:6px;">OpenAI <span class="apikey-purpose">· Marin &amp; Onyx voices</span></label>
+            <div class="settings-row-inline" style="gap:8px; margin-bottom:2px;">
+              <input id="apikey-openai" class="settings-input" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false">
+              <button id="apikey-openai-save" class="btn-edit-save apikey-save-btn" data-i18n-title="tooltip.apikey-save" data-i18n="settings.apikey-btn-save">Save</button>
+            </div>
+            <div class="settings-apikey-status-row">
+              <span id="apikey-openai-status" class="settings-label-hint apikey-status"></span>
+              <button id="apikey-openai-clear" class="settings-text-btn apikey-clear-btn hidden" data-i18n-title="tooltip.apikey-clear" data-i18n="settings.apikey-btn-clear">Clear override</button>
+            </div>
+            <label class="settings-label" style="margin-top:6px;">ElevenLabs <span class="apikey-purpose">· Brittney &amp; Callum voices</span></label>
+            <div class="settings-row-inline" style="gap:8px; margin-bottom:2px;">
+              <input id="apikey-elevenlabs" class="settings-input" type="password" placeholder="sk_…" autocomplete="off" spellcheck="false">
+              <button id="apikey-elevenlabs-save" class="btn-edit-save apikey-save-btn" data-i18n-title="tooltip.apikey-save" data-i18n="settings.apikey-btn-save">Save</button>
+            </div>
+            <div class="settings-apikey-status-row">
+              <span id="apikey-elevenlabs-status" class="settings-label-hint apikey-status"></span>
+              <button id="apikey-elevenlabs-clear" class="settings-text-btn apikey-clear-btn hidden" data-i18n-title="tooltip.apikey-clear" data-i18n="settings.apikey-btn-clear">Clear override</button>
+            </div>
+          </div>
+        </div>
+        <div id="app-version-display" style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:20px;opacity:0.5;"></div>
+        <div id="panel-change-passphrase-form" class="hidden">
+          <label class="settings-label" data-i18n="cp.label-current">Current passphrase</label>
+          <input id="cp-current" class="settings-input" type="password" data-i18n-placeholder="cp.ph-current" placeholder="Current passphrase" autocomplete="current-password">
+          <label class="settings-label" data-i18n="cp.label-new">New passphrase</label>
+          <input id="cp-new" class="settings-input" type="password" data-i18n-placeholder="cp.ph-new" placeholder="At least 12 characters" autocomplete="new-password">
+          <label class="settings-label" data-i18n="cp.label-confirm">Confirm new passphrase</label>
+          <input id="cp-confirm" class="settings-input" type="password" data-i18n-placeholder="cp.ph-confirm" placeholder="Confirm new passphrase" autocomplete="new-password">
+          <button id="cp-save" class="btn-primary" data-i18n="cp.btn-update">Update passphrase</button>
+          <button id="cp-cancel" class="settings-text-btn" data-i18n="cp.btn-back">← Back to settings</button>
+        </div>
+      </div>
+
+      <div id="installer-downloads" class="installer-downloads hidden">
+        <a href="https://whoszoo.app" target="_blank" rel="noopener" class="installer-link-card">
+          <div class="installer-link-title" data-i18n="install.get-title">Get set up →</div>
+          <div class="installer-link-sub" data-i18n="install.get-sub">whoszoo.app — setup wizard, install guide, and how it works</div>
+        </a>
+      </div>
+      <a id="settings-help-link" href="help.html?from=app&amp;v=1.8.48" class="settings-help-link" style="margin-top:16px" data-i18n="setup.link-how">How does this work? →</a>
+    </div>
+  </div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="screen hidden">
+    <div class="loading-container">
+      <div class="loading-pulse"></div>
+      <p id="loading-text" class="loading-text" data-i18n="loading.text">Loading your memories...</p>
+    </div>
+  </div>
+
+  <!-- Chat Screen -->
+  <div id="chat-screen" class="screen hidden">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="header-main">
+        <div class="header-left">
+          <span id="ready-badge" class="ready-badge hidden"></span>
+          <span id="memory-badge" class="memory-badge" role="button"></span>
+          <span id="deep-record-badge" class="deep-record-badge hidden" data-i18n-title="tooltip.deep-badge">🔐 Cold Storage <span id="deep-record-count">0</span></span>
+        </div>
+        <div class="header-right">
+          <button id="cls-btn" class="icon-btn" data-i18n-title="tooltip.cls-btn">↺</button>
+          <button id="copy-chat-btn" class="icon-btn" data-i18n-title="tooltip.copy-chat">📋</button>
+          <button id="settings-btn" class="icon-btn" data-i18n-title="tooltip.settings">⚙</button>
+        </div>
+      </div>
+      <div class="header-controls">
+        <button id="model-btn" class="model-btn haiku" data-i18n-title="tooltip.model-btn">Haiku</button>
+        <span id="cache-badge" class="cache-badge hidden"></span>
+        <button id="archive-btn" class="archive-btn" data-i18n-title="tooltip.archive-btn">📦 Archive</button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages" class="messages"></div>
+
+    <!-- Drop Overlay -->
+    <div id="drop-overlay" class="drop-overlay hidden">
+      <div class="drop-overlay-inner">
+        <div class="drop-icon">📎</div>
+        <div class="drop-label" data-i18n="drop.label">Drop file to attach</div>
+        <div class="drop-sub" data-i18n="drop.sub">Images · PDF · TXT</div>
+      </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="input-bar">
+      <div id="cmd-suggestions" class="cmd-suggestions hidden"></div>
+      <div id="context-attach-bar" class="context-attach-bar hidden">📎 <span id="context-attach-names"></span></div>
+      <div id="vault-context-bar" class="vault-context-bar hidden">🔐 <span id="vault-context-label"></span> · cold storage record in context · <button id="vault-context-clear" class="vault-context-clear-btn" data-i18n-title="tooltip.vault-clear">clear</button></div>
+      <div id="attachment-preview" class="attachment-preview hidden"></div>
+      <div class="input-row">
+        <div class="input-wrap">
+          <textarea id="input" class="input-field" data-i18n-placeholder="chat.input-placeholder" placeholder="Ask your memory..." rows="1"></textarea>
+          <button id="attach-btn" class="attach-btn" data-i18n-title="tooltip.attach-btn">📎</button>
+          <input id="file-input" type="file" accept="image/*,application/pdf,text/plain" multiple style="display:none">
+        </div>
+        <button id="conv-btn" class="conv-bar-btn" data-i18n-title="tooltip.conv-btn">🎙</button>
+        <button id="stop-btn" class="stop-btn hidden" data-i18n-title="tooltip.stop-btn">■</button>
+        <button id="send-btn" class="send-btn" data-i18n-title="tooltip.send">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Panel -->
+  <div id="preview-overlay" class="preview-overlay hidden">
+    <div id="preview-panel" class="preview-panel">
+      <div class="preview-header">
+        <span class="preview-title" data-i18n="modal.preview-title">Memory Preview</span>
+        <span id="preview-summary" class="preview-summary"></span>
+      </div>
+      <div id="preview-content" class="preview-content"></div>
+      <div class="preview-actions">
+        <button id="preview-reject" class="btn-secondary" data-i18n="modal.btn-cancel">Cancel</button>
+        <button id="preview-confirm" class="btn-edit-save" data-i18n="modal.btn-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conversation Mode Overlay -->
+  <div id="conv-overlay" class="conv-overlay hidden">
+    <div id="conv-context-indicator" class="conv-context-indicator">
+      <div class="conv-chips-left">
+        <span id="conv-ctx-pct" class="conv-ctx-pct">0%</span>
+        <button id="conv-reset-ctx" class="conv-reset-ctx-btn" data-i18n-title="tooltip.conv-reset-ctx" data-i18n="header.context-reset">↺ Context Reset</button>
+        <button id="conv-voice-btn" class="voice-btn" data-i18n-title="tooltip.conv-voice"></button>
+        <button id="conv-archive-btn" class="archive-btn" data-i18n-title="tooltip.conv-archive">📦 Archive</button>
+      </div>
+    </div>
+    <div id="conv-content" class="conv-content">
+      <div id="journal-mode-badge" class="journal-mode-badge" data-i18n="conv.recording-journal">Recording journal</div>
+      <div id="conv-orb" class="conv-orb"></div>
+      <div id="conv-label" class="conv-label" data-i18n="conv.label.idle">Tap to chat · Hold to journal</div>
+      <div id="conv-transcript" class="conv-transcript"></div>
+      <div id="journal-chunk-list" class="journal-chunk-list hidden"></div>
+      <div class="conv-controls">
+        <button id="conv-mute" class="conv-mute-btn" data-i18n-title="tooltip.conv-mute">🎤</button>
+        <button id="conv-discard" class="conv-discard-btn invisible" disabled data-i18n-title="tooltip.conv-discard" data-i18n="conv.discard">↺ Discard</button>
+        <button id="conv-finish" class="conv-finish-btn invisible" data-i18n-title="tooltip.conv-finish" data-i18n="conv.finish">✓ Finish</button>
+        <button id="conv-exit" class="conv-exit" data-i18n="conv.exit">✕ Exit</button>
+      </div>
+    </div>
+    <div id="journal-exit-dialog" class="journal-exit-dialog hidden">
+      <p class="journal-exit-msg" data-i18n="conv.exit-msg-default">Exit journal? Your dictation will be lost.</p>
+      <div class="journal-exit-btns">
+        <button id="journal-exit-cancel" class="journal-exit-cancel-btn" data-i18n="conv.keep-going">Keep Going</button>
+        <button id="journal-exit-confirm" class="journal-exit-confirm-btn" data-i18n="conv.exit-anyway">Exit Anyway</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Archive Review Modal -->
+  <div id="archive-modal" class="archive-modal hidden">
+    <div class="archive-modal-inner">
+      <div class="archive-modal-header">
+        <span class="archive-modal-title" data-i18n="modal.archive-title">Archive Review</span>
+        <button id="archive-modal-close" class="modal-close" data-i18n-title="tooltip.modal-close">✕</button>
+      </div>
+      <div id="archive-modal-body" class="archive-modal-body"></div>
+      <div class="archive-modal-footer">
+        <button id="archive-modal-cancel" class="btn-secondary" data-i18n="modal.btn-archive-cancel">Cancel</button>
+        <button id="archive-modal-confirm" class="btn-archive-confirm" disabled>Archive Selected (0)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deep Review Modal -->
+  <div id="deep-modal" class="archive-modal hidden">
+    <div class="archive-modal-inner">
+      <div class="archive-modal-header">
+        <span class="archive-modal-title" data-i18n="modal.deep-title">Cold Storage Review</span>
+        <button id="deep-modal-close" class="modal-close" data-i18n-title="tooltip.modal-close">✕</button>
+      </div>
+      <div id="deep-modal-body" class="archive-modal-body"></div>
+      <div class="archive-modal-footer">
+        <button id="deep-modal-cancel" class="btn-secondary" data-i18n="modal.btn-deep-cancel">Cancel</button>
+        <button id="deep-modal-confirm" class="btn-archive-confirm" disabled>Move to Cold Storage (0)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compact Review Modal -->
+  <div id="compact-modal" class="compact-modal hidden">
+    <div class="compact-modal-inner">
+      <div class="compact-modal-header">
+        <span class="compact-modal-title" data-i18n="modal.compact-title">Compact Review</span>
+        <button id="compact-modal-close" class="modal-close" data-i18n-title="tooltip.modal-close">✕</button>
+      </div>
+      <div id="compact-modal-body" class="compact-modal-body"></div>
+      <div class="compact-modal-footer">
+        <button id="compact-modal-cancel" class="btn-secondary" data-i18n="modal.btn-compact-cancel">Cancel</button>
+        <button id="compact-modal-confirm" class="btn-edit-save" disabled>Compact Selected (0)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Section Modal -->
+  <div id="edit-modal" class="edit-modal hidden">
+    <div class="edit-modal-inner">
+      <div class="edit-modal-header">
+        <span class="edit-modal-title" data-i18n="modal.edit-title">Edit Record</span>
+        <div id="edit-modal-findbar" class="edit-modal-findbar hidden">
+          <span id="edit-modal-find-label" class="edit-modal-find-label"></span>
+          <button id="edit-modal-find-prev" class="edit-modal-find-btn">↑</button>
+          <button id="edit-modal-find-next" class="edit-modal-find-btn">↓</button>
+        </div>
+        <button id="edit-modal-close" class="modal-close" data-i18n-title="tooltip.modal-close">✕</button>
+      </div>
+      <div class="edit-modal-tier-row">
+        <span id="edit-modal-tier-badge" class="edit-modal-tier-badge"></span>
+        <div class="edit-modal-tier-btns">
+          <button id="edit-modal-close-loop-btn" class="edit-modal-tier-btn edit-modal-close-loop hidden">✓ Close Loop</button>
+          <button id="edit-modal-reopen-btn" class="edit-modal-tier-btn edit-modal-reopen hidden">↩ Reopen</button>
+          <button id="edit-modal-move-btn1" class="edit-modal-tier-btn"></button>
+          <button id="edit-modal-move-btn2" class="edit-modal-tier-btn"></button>
+        </div>
+      </div>
+      <div id="edit-modal-confirm-strip" class="edit-modal-confirm-strip hidden">
+        <span id="edit-modal-confirm-label" class="edit-modal-confirm-label"></span>
+        <div class="edit-modal-confirm-btns">
+          <button id="edit-modal-confirm-cancel" class="edit-modal-strip-btn edit-modal-strip-cancel" data-i18n="modal.btn-cancel">Cancel</button>
+          <button id="edit-modal-confirm-move" class="edit-modal-strip-btn edit-modal-strip-move" data-i18n="modal.btn-move">Move</button>
+        </div>
+      </div>
+      <div class="edit-modal-body">
+        <div id="edit-modal-section-name" class="edit-modal-section-name"></div>
+        <div id="edit-modal-photo-strip" class="edit-modal-photo-strip hidden"></div>
+        <input type="file" id="edit-modal-photo-input" accept="image/*,application/pdf,text/plain" style="display:none">
+        <a href="https://www.markdownguide.org/cheat-sheet/" target="_blank" rel="noopener" class="edit-modal-md-link">Markdown reference →</a>
+        <div id="edit-modal-checklist" class="edit-modal-checklist hidden"></div>
+        <textarea id="edit-modal-ta" class="edit-modal-ta"></textarea>
+        <div id="edit-modal-error" class="compact-validation-error"></div>
+      </div>
+      <div class="edit-modal-footer">
+        <button id="edit-modal-delete" class="btn-delete-action" data-i18n="modal.btn-edit-delete">Delete record</button>
+        <button id="edit-modal-cancel" class="btn-secondary" data-i18n="modal.btn-edit-cancel">Cancel</button>
+        <button id="edit-modal-save" class="btn-edit-save" data-i18n="modal.btn-edit-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="delete-modal" class="delete-modal hidden">
+    <div class="delete-modal-inner">
+      <div class="delete-modal-header">
+        <span class="delete-modal-title" data-i18n="modal.delete-title">Delete Record</span>
+        <span id="delete-modal-target" class="delete-modal-target"></span>
+      </div>
+      <div id="delete-modal-content" class="delete-modal-content"></div>
+      <div class="delete-modal-warning" data-i18n="modal.delete-warning">This permanently removes the record from memory. Cannot be undone.</div>
+      <p class="backup-modal-desc">Type <strong>delete</strong> to confirm</p>
+      <input id="delete-modal-input" class="delete-modal-input" type="text" data-i18n-placeholder="modal.delete-ph" placeholder='Type "delete" to confirm' autocomplete="off">
+      <div class="delete-modal-footer">
+        <button id="delete-modal-cancel" class="btn-secondary" data-i18n="modal.btn-delete-cancel">Cancel</button>
+        <button id="delete-modal-confirm" class="btn-delete-confirm" disabled data-i18n="modal.btn-delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Re-auth Gate Modal (passphrase guard for /export, /export-plain and /import) -->
+  <div id="access-key-gate-modal" class="backup-modal hidden">
+    <div class="backup-modal-inner">
+      <div class="backup-modal-header">
+        <span class="backup-modal-title" data-i18n="modal.reauth-title">Confirm it's you</span>
+      </div>
+      <p class="backup-modal-desc" data-i18n="modal.reauth-desc">This creates or restores a complete copy of your memory. Enter your passphrase to continue.</p>
+      <input id="access-key-gate-input" type="password" class="backup-modal-input" data-i18n-placeholder="modal.reauth-ph" placeholder="Enter your passphrase" autocomplete="current-password" spellcheck="false">
+      <div id="access-key-gate-error" class="backup-modal-error hidden"></div>
+      <div class="backup-modal-footer">
+        <button id="access-key-gate-cancel" class="btn-secondary" data-i18n="modal.btn-access-cancel">Cancel</button>
+        <button id="access-key-gate-confirm" class="btn-backup-confirm" disabled data-i18n="modal.btn-access-confirm">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Zip (unencrypted) Modal -->
+  <div id="export-zip-modal" class="backup-modal hidden">
+    <div class="backup-modal-inner backup-modal-inner--warn">
+      <div class="backup-modal-header">
+        <span class="backup-modal-title backup-modal-title--warn" data-i18n="modal.export-zip-title">Export Plain Text Files</span>
+      </div>
+      <p class="backup-modal-desc">Downloads all 12 memory files as individual <strong>.md</strong> files inside a <strong>.zip</strong>. These are plain text — readable in any text editor.</p>
+      <div class="backup-modal-warning">⚠ This file is <strong>not encrypted</strong>. Anyone who gets access to it can read everything in your memory. Do not store it in an unsecured location.</div>
+      <p class="backup-modal-desc">Type <strong>unencrypted</strong> to confirm you understand.</p>
+      <input id="export-zip-input" class="backup-modal-input" type="text" data-i18n-placeholder="modal.export-zip-ph" placeholder='Type "unencrypted" to confirm' autocomplete="off">
+      <div id="export-zip-error" class="backup-modal-error hidden"></div>
+      <label class="backup-modal-check-row">
+        <input type="checkbox" id="export-zip-include-photos" checked>
+        <span>Include photos</span>
+      </label>
+      <div class="backup-modal-footer">
+        <button id="export-zip-cancel" class="btn-secondary" data-i18n="modal.btn-export-zip-cancel">Cancel</button>
+        <button id="export-zip-confirm" class="btn-backup-confirm" disabled data-i18n="modal.btn-export-zip-confirm">Download Zip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Memory Modal -->
+  <div id="reset-modal" class="backup-modal hidden">
+    <div class="backup-modal-inner backup-modal-inner--warn">
+      <div class="backup-modal-header">
+        <span class="backup-modal-title backup-modal-title--warn" data-i18n="modal.reset-title">Reset Memory System</span>
+      </div>
+      <div class="backup-modal-warning">⚠ This permanently erases all 12 memory files and replaces them with blank templates. <strong>This cannot be undone.</strong> Export a backup first if you want to preserve anything.</div>
+      <p class="backup-modal-desc" style="margin-top:12px;">Access Key <span class="settings-label-hint">(from installation)</span></p>
+      <input id="reset-access-key" type="password" class="backup-modal-input" placeholder="Paste your Access Key" autocomplete="off" spellcheck="false">
+      <p class="backup-modal-desc" style="margin-top:12px;">Type <strong>reset</strong> to confirm</p>
+      <input id="reset-confirm-word" class="backup-modal-input" type="text" data-i18n-placeholder="modal.reset-ph" placeholder='Type "reset" to confirm' autocomplete="off" spellcheck="false" style="margin-top:4px;">
+      <p class="backup-modal-desc" style="margin-top:12px;">New name for this system <span class="settings-label-hint">(optional — leave blank to keep current)</span></p>
+      <input id="reset-new-name" class="backup-modal-input" type="text" data-i18n-placeholder="modal.reset-name-ph" placeholder="First name" autocomplete="off" style="margin-top:4px;">
+      <div id="reset-error" class="backup-modal-error hidden"></div>
+      <div class="backup-modal-footer" style="margin-top:16px;">
+        <button id="reset-cancel" class="btn-secondary" data-i18n="modal.btn-reset-cancel">Cancel</button>
+        <button id="reset-confirm" class="btn-delete-confirm" disabled data-i18n="modal.btn-reset-confirm">Reset Memory</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for .whoszoo import -->
+  <input type="file" id="import-file-input" accept=".whoszoo" class="hidden">
+  <!-- Hidden file input for contacts import (.vcf / .csv) -->
+  <input type="file" id="import-contacts-input" accept=".vcf,.csv" class="hidden">
+
+  <!-- Export Modal -->
+  <div id="export-modal" class="backup-modal hidden">
+    <div class="backup-modal-inner">
+      <div class="backup-modal-header">
+        <span class="backup-modal-title" data-i18n="modal.export-title">Export Memory Backup</span>
+      </div>
+      <p class="backup-modal-desc">All 12 memory files will be encrypted and downloaded as a <strong>.whoszoo</strong> file. Store your password safely — there is no recovery if you lose it.</p>
+      <input id="export-pw" type="password" class="backup-modal-input" data-i18n-placeholder="modal.export-ph-pw" placeholder="Password" autocomplete="new-password">
+      <input id="export-pw2" type="password" class="backup-modal-input" data-i18n-placeholder="modal.export-ph-pw2" placeholder="Confirm password" autocomplete="new-password">
+      <div id="export-modal-error" class="backup-modal-error hidden"></div>
+      <label class="backup-modal-check-row">
+        <input type="checkbox" id="export-include-photos" checked>
+        <span>Include photos</span>
+      </label>
+      <p class="backup-modal-desc" style="margin-top:4px;font-size:12px;color:var(--text-dim);">Uncheck for a smaller file — your photos stay safe in R2.</p>
+      <div class="backup-modal-footer">
+        <button id="export-modal-cancel" class="btn-secondary" data-i18n="modal.btn-export-cancel">Cancel</button>
+        <button id="export-modal-confirm" class="btn-backup-confirm" data-i18n="modal.btn-export-confirm">Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div id="import-modal" class="backup-modal hidden">
+    <div class="backup-modal-inner">
+      <!-- Phase 1: password entry -->
+      <div id="import-phase1">
+        <div class="backup-modal-header">
+          <span class="backup-modal-title" data-i18n="modal.import-title">Import Memory Backup</span>
+          <span id="import-filename" class="backup-modal-subtitle"></span>
+        </div>
+        <input id="import-pw" type="password" class="backup-modal-input" data-i18n-placeholder="modal.import-ph-pw" placeholder="Backup password" autocomplete="current-password">
+        <div id="import-modal-error" class="backup-modal-error hidden"></div>
+        <div class="backup-modal-footer">
+          <button id="import-modal-cancel" class="btn-secondary" data-i18n="modal.btn-import-cancel">Cancel</button>
+          <button id="import-modal-decrypt" class="btn-backup-confirm" data-i18n="modal.btn-import-decrypt">Decrypt</button>
+        </div>
+      </div>
+      <!-- Phase 2: summary + overwrite confirmation -->
+      <div id="import-phase2" class="hidden">
+        <div class="backup-modal-header">
+          <span class="backup-modal-title" data-i18n="modal.import-title">Import Memory Backup</span>
+        </div>
+        <div id="import-summary" class="backup-modal-summary"></div>
+        <div class="backup-modal-warning">⚠ This will permanently overwrite your current memory files. There is no undo.</div>
+        <p class="backup-modal-desc">Type <strong>overwrite</strong> to confirm</p>
+        <input id="import-confirm-input" class="backup-modal-input" type="text" placeholder='Type "overwrite" to confirm' autocomplete="off">
+        <div id="import-modal-error2" class="backup-modal-error hidden"></div>
+        <div class="backup-modal-footer">
+          <button id="import-modal-back" class="btn-secondary" style="margin-right:auto;" data-i18n="modal.btn-import-back">← Back</button>
+          <button id="import-modal-cancel2" class="btn-secondary" data-i18n="modal.btn-import-cancel2">Cancel</button>
+          <button id="import-modal-confirm" class="btn-backup-confirm" disabled data-i18n="modal.btn-import-confirm">Overwrite Memory</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Photo Lightbox -->
+  <div id="photo-lightbox" class="photo-lightbox hidden" role="dialog" aria-modal="true">
+    <div class="photo-lightbox-backdrop"></div>
+    <img id="photo-lightbox-img" class="photo-lightbox-img" src="" alt="Photo">
+    <button id="photo-lightbox-prev" class="photo-lightbox-nav photo-lightbox-prev" aria-label="Previous">&#x2039;</button>
+    <button id="photo-lightbox-next" class="photo-lightbox-nav photo-lightbox-next" aria-label="Next">&#x203a;</button>
+  </div>
+
+  <script src="app.js?v=1.8.48"></script>
+</body>
+</html>

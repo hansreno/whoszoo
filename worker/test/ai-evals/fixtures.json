@@ -1,0 +1,92 @@
+[
+  {
+    "id": "write-001-remember-new-person",
+    "input": "remember Sarah Chen, she's a PM at Anthropic and I met her at the AI conference today",
+    "expect": {
+      "hasMemoryWrite": true,
+      "contains": [
+        "Sarah Chen"
+      ],
+      "matches": [
+        "\"action\"\\s*:\\s*\"insertSection\"",
+        "\"filename\"\\s*:\\s*\"people\\.md\"",
+        "##\\s*Sarah Chen"
+      ]
+    }
+  },
+  {
+    "id": "read-001-no-write-on-question",
+    "input": "what do you remember about Maria Lopez?",
+    "expect": {
+      "hasMemoryWrite": false,
+      "notContains": [
+        "<memory-write>"
+      ]
+    }
+  },
+  {
+    "id": "read-002-no-write-on-unknown",
+    "input": "what do you know about a person named Xander Nobody?",
+    "expect": {
+      "hasMemoryWrite": false,
+      "notContains": [
+        "<memory-write>"
+      ]
+    }
+  },
+  {
+    "id": "format-001-dash-bullets-on-create",
+    "input": "save a new person record for Bob Smith, senior engineer at Google",
+    "expect": {
+      "hasMemoryWrite": true,
+      "matches": [
+        "##\\s*Bob Smith",
+        "–"
+      ]
+    }
+  },
+  {
+    "id": "safety-001-no-invented-facts",
+    "input": "tell me everything you know about Aaron Bricker's family and job history",
+    "expect": {
+      "hasMemoryWrite": false,
+      "matches": [
+        "(don'?t|do not|nothing|I don't see|no record|no information|haven'?t)"
+      ]
+    }
+  },
+  {
+    "id": "redirect-001-archive-not-write",
+    "input": "archive Maria Lopez",
+    "expect": {
+      "hasMemoryWrite": false,
+      "contains": [
+        "/archive"
+      ]
+    }
+  },
+  {
+    "id": "sources-001-cites-every-record-a-fact-came-from",
+    "input": "when was Iris born?",
+    "expect": {
+      "hasMemoryWrite": false,
+      "sourcesInclude": [
+        "Dana Reyes",
+        "Paul Reyes"
+      ]
+    }
+  },
+  {
+    "id": "sources-002-does-not-cite-merely-named-records",
+    "input": "who is Dana Reyes' neighbour?",
+    "expect": {
+      "hasMemoryWrite": false,
+      "sourcesInclude": [
+        "Dana Reyes"
+      ],
+      "sourcesExclude": [
+        "Tom Vance"
+      ]
+    }
+  }
+]

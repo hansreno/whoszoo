@@ -1,0 +1,12 @@
+{
+  "name": "whoszoo-worker",
+  "version": "1.7.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker and test suite for WhosWhoZoo.",
+  "scripts": {
+    "test": "node --test test/worker-helpers.test.mjs test/audit-detectors.test.mjs test/endpoint-logic.test.mjs test/css-contracts.test.mjs test/frontend-contracts.test.mjs",
+    "test:ai": "node test/ai-evals/run-evals.mjs",
+    "test:ai:dry": "node test/ai-evals/run-evals.mjs --dry-run"
+  }
+}

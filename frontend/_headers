@@ -1,0 +1,66 @@
+# Security headers for the frontend, served by Cloudflare Workers' [assets]
+# binding (see worker/wrangler.toml).
+#
+# WHY THIS FILE AND NOT worker.js: with [assets], a request that matches a
+# static file is served by the platform without ever invoking the Worker's
+# fetch handler, so headers set in worker.js never reach these responses.
+# This is the same precedence that made landing/functions/setup.js's CSP dead
+# code for months — see the comment at the top of that file.
+#
+# ⚠ KEEP IN SYNC with the CSP in landing/functions/_lib/bundle-worker.js.
+# That file is how EVERY wizard-deployed install serves its frontend (inlined
+# into the Worker, not via [assets]), so it needs the same policy applied a
+# completely different way. Changing one without the other means Hans's own
+# instance and every customer's install disagree about their own security.
+#
+# TWO POLICIES, on purpose:
+#
+#   The app (/ and /index.html) holds all memory content and is where any XSS
+#   would actually matter. It has zero inline <script> blocks, zero inline
+#   event handlers, and one external script, so it can take a strict
+#   script-src — which is the directive that does the real work.
+#
+#   The docs pages (help*.html, support.html) carry 2-3 inline <script> blocks
+#   each for back-button and language-switch logic. They render no user data
+#   at all, so 'unsafe-inline' there costs nothing an attacker could use.
+#   Extracting those scripts to files would let both pages share one strict
+#   policy — worth doing eventually, not worth refactoring five stable pages
+#   for right now.
+#
+# Directive notes:
+#   style-src needs 'unsafe-inline' because index.html uses 35 inline
+#     style="..." attributes. CSS-in-JS via el.style.x is NOT affected by CSP.
+#   img-src needs data: (attachment previews are data:image base64) and blob:
+#     (photo thumbnails and the lightbox use URL.createObjectURL).
+#   media-src needs blob: for TTS audio playback.
+#   worker-src 'self' is what lets sw.js register at all. Without it the
+#     directive falls back to default-src ('none') and registration fails
+#     outright — which would silently remove the in-app install prompt,
+#     since Chromium only offers it when a service worker is registered.
+#     The docs pages register nothing and deliberately don't get it.
+#   connect-src 'self' assumes the frontend and Worker share an origin, which
+#     is true for every wizard install and for wrangler deploy. An install
+#     that points the app at a DIFFERENT worker URL would break here.
+
+# ⚠ Cloudflare applies EVERY matching rule, not just the most specific one, and
+# a browser given two CSP headers enforces their INTERSECTION. So a broad /*
+# CSP would silently re-impose the strict script-src on the docs pages and
+# break them. CSP is therefore declared per-document and never via /*.
+# Non-document assets (app.js, style.css, images) need no CSP at all — the
+# header only means anything in a document context.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: same-origin
+
+/
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/index.html
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/help*
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/support.html
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WhosWhoZoo — Comment ça marche</title> <!-- needs-review -->
+  <link rel="icon" href="owl.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0f1e;
+      --surface: #1a2744;
+      --surface2: #243156;
+      --accent: #3b82f6;
+      --text: #e8dcc8;
+      --text-dim: #9aa3b8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100%;
+    }
+
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .page-header a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 12px;
+      border: 1px solid var(--surface2);
+      border-radius: var(--radius-sm);
+    }
+    .page-header a:hover { color: var(--text); border-color: var(--text-dim); }
+
+    .lang-switcher { margin-left: auto; display: flex; gap: 8px; }
+    .lang-switcher a { font-size: 12px; padding: 4px 10px; }
+    .lang-switcher a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* Hero */
+    .hero {
+      margin-bottom: 48px;
+    }
+    .hero-owl {
+      width: 72px;
+      height: auto;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .hero-quote {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--surface2);
+    }
+
+    /* How it works cards */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .card-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .card-icon {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+
+    /* Commands table */
+    .cmd-group {
+      margin-bottom: 24px;
+    }
+    .cmd-group-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    .cmd-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cmd-row {
+      display: flex;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      align-items: baseline;
+    }
+    .cmd-row:hover { background: var(--surface2); }
+    .cmd-name {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      color: var(--green);
+      white-space: nowrap;
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+    .cmd-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .cmd-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .badge-free { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-tokens { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+    /* Header controls */
+    .controls-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-row {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+    }
+    .control-icon {
+      font-size: 18px;
+      min-width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .control-label {
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+    .control-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    /* Tips */
+    .tips-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tip {
+      font-size: 14px;
+      color: var(--text-dim);
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+      line-height: 1.5;
+    }
+    .tip strong { color: var(--text); }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 56px;
+      padding-top: 20px;
+      border-top: 1px solid var(--surface2);
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Back + Lang switcher -->
+  <div class="page-header">
+    <a id="help-back-link" href="index.html">← Retour à l'app</a> <!-- needs-review -->
+    <div class="lang-switcher">
+      <a href="help.html">EN</a>
+      <a href="help.es.html">ES</a>
+      <a href="help.fr.html" class="active">FR</a>
+      <a href="help.hi.html">HI</a>
+    </div>
+  </div>
+  <script>
+    const _from = new URLSearchParams(location.search).get("from");
+    const _back = document.getElementById("help-back-link");
+    if (_from === "settings") _back.textContent = "← Retour aux paramètres"; // needs-review
+    _back.addEventListener("click", e => { e.preventDefault(); history.back(); });
+  </script>
+
+  <!-- Hero -->
+  <div class="hero">
+    <img class="hero-owl" src="owl.png" alt="owl">
+    <div class="hero-quote">« Qui est qui dans mon zoo ? »</div> <!-- needs-review -->
+    <h1>La plupart des outils vous font chercher.<br><span>WhosWhoZoo sait déjà.</span></h1> <!-- needs-review -->
+    <p class="hero-sub">Il charge tout ce que vous avez enregistré sur les personnes et répond à partir de ça — instantanément et complètement. Comme parler à votre propre mémoire.</p> <!-- needs-review -->
+  </div>
+
+  <!-- Three-tier memory -->
+  <div class="section">
+    <h2>Vos trois niveaux de mémoire</h2> <!-- needs-review -->
+    <div class="cards">
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title"><span class="card-icon">🖥️</span>Actif — votre bureau</div> <!-- needs-review -->
+        <div class="card-desc">Quatre fichiers toujours disponibles pour Claude : <strong>people.md</strong>, <strong>reflections.md</strong>, <strong>fragments.md</strong>, <strong>loops.md</strong>. Chaque conversation les charge automatiquement. C'est votre mémoire de travail — gardez-la légère et à jour.</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--amber);">
+        <div class="card-title"><span class="card-icon">📦</span>Archives — votre classeur</div> <!-- needs-review -->
+        <div class="card-desc">Les anciens enregistrements dont vous n'avez pas besoin chaque jour mais auxquels vous souhaitez toujours accéder. Appuyez une fois sur <strong>📦 Archives</strong> pour inclure les fichiers d'archives dans le chat et la recherche. Utilisez <strong>/archive-review</strong> pour laisser l'IA suggérer ce qui est prêt à y être déplacé.</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid #a78bfa;">
+        <div class="card-title"><span class="card-icon">🔐</span>Stockage froid — rarement consulté, jamais chargé automatiquement</div> <!-- needs-review -->
+        <div class="card-desc">Les enregistrements que vous souhaitez conserver à long terme mais dont vous avez rarement besoin. Les fichiers de stockage froid ne sont <strong>jamais suggérés pour le nettoyage</strong> et ne sont <strong>jamais chargés automatiquement</strong> — ils ne s'ouvrent que lorsque vous le demandez. Utilisez <strong>/deep [nom]</strong> pour y déplacer un enregistrement. Lancez <strong>/recall [nom]</strong> pour rechercher dans le stockage froid, ou <strong>/recall</strong> seul pour parcourir tout ce qu'il contient.</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="background: var(--surface2);">
+        <div class="card-title" style="font-size:13px;color:var(--text-dim);">Déplacer des enregistrements entre les niveaux</div> <!-- needs-review -->
+        <div class="card-desc" style="font-size:13px;">Actif → Archives : <code style="font-family:monospace;color:var(--green)">/archive [nom]</code> ou <code style="font-family:monospace;color:var(--green)">/archive-review</code><br>Archives → Stockage froid : <code style="font-family:monospace;color:var(--green)">/deep [nom]</code> ou <code style="font-family:monospace;color:var(--green)">/deep-review</code><br>N'importe quel niveau → Actif : <code style="font-family:monospace;color:var(--green)">/restore [nom]</code></div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="section">
+    <h2>Comment ça marche</h2> <!-- needs-review -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">💾</span>Votre mémoire, vos fichiers</div> <!-- needs-review -->
+        <div class="card-desc">Vos notes vivent dans votre propre compte — pas sur les serveurs de WhosWhoZoo. Vous pouvez tout exporter ou supprimer à tout moment. Il y a 4 fichiers actifs (people, reflections, fragments, loops), 4 fichiers d'archives pour les anciens enregistrements, et 4 fichiers de stockage froid pour les enregistrements à long terme rarement consultés.</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🧠</span>Claude lit tout, à chaque fois</div> <!-- needs-review -->
+        <div class="card-desc">Chaque question charge toute votre mémoire active dans Claude avant de répondre : le fichier entier, pas un résultat de recherche. Aucune supposition sur les notes qui comptent, et vos archives sont accessibles d'un seul geste quand vous en avez besoin, ce qui lui permet d'établir des liens entre les personnes et les sujets.</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">📦</span>Les archives maintiennent la légèreté</div> <!-- needs-review -->
+        <div class="card-desc">Les enregistrements dont vous n'avez plus besoin quotidiennement sont déplacés vers les archives. Utilisez le bouton 📦 pour inclure les fichiers d'archives dans le chat et la recherche. Le stockage froid est séparé — utilisez <strong>/recall</strong> pour le rechercher. Les enregistrements du stockage froid ne sont jamais chargés automatiquement.</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🔒</span>Mémoire organisée — sans bruit extérieur</div> <!-- needs-review -->
+        <div class="card-desc">Claude ne lit que ce que vous avez enregistré — pas internet, pas les données des autres. C'est pourquoi les réponses s'appuient sur vos propres notes plutôt que sur des connaissances générales du web. Un conseil pratique : quand deux personnes partagent le même prénom, ou que vous hésitez sur l'orthographe, donnez le nom complet. Un nom partiel ou mal orthographié est le seul cas où Claude peut tomber sur le mauvais dossier, ou affirmer qu'une personne est absente alors qu'elle est bien là — si cela arrive, réinitialisez le contexte et redemandez avec le nom complet.</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🎙</span>Voix en entrée, voix en sortie</div> <!-- needs-review -->
+        <div class="card-desc">Appuyez sur le micro pour entrer en mode conversation. Parlez naturellement. L'app transcrit, envoie à Claude et lit la réponse à voix haute — avec les URL et le code remplacés par des indications verbales pour rester agréable à écouter.</div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy & Cost -->
+  <div class="section">
+    <h2>Confidentialité et coût</h2> <!-- needs-review -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🛡️</span>Vos données n'entraînent jamais des modèles d'IA</div> <!-- needs-review -->
+        <div class="card-desc">WhosWhoZoo utilise l'API Anthropic — pas le site web Claude.ai. L'utilisation de l'API est explicitement exclue de l'entraînement des modèles selon les conditions d'Anthropic. Vos notes sont traitées par Claude pour répondre à vos questions, mais Anthropic ne les stocke jamais à long terme ni ne les utilise pour améliorer un modèle d'IA. Si vous utilisez des réponses vocales, le texte prononcé passe par ElevenLabs ou OpenAI TTS — également sous des conditions d'API qui interdisent l'utilisation pour l'entraînement.</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">☁️</span>Stocké en périphérie, pas sur un serveur central</div> <!-- needs-review -->
+        <div class="card-desc">Vos fichiers mémoire sont stockés sur le réseau mondial de Cloudflare — la même infrastructure qui alimente des millions de sites web. Il n'y a pas de base de données WhosWhoZoo, pas de compte à pirater. Vos données vivent dans votre compte Cloudflare, et dans l'application c'est votre phrase secrète qui les déverrouille. À savoir : le jeton d'API Cloudflare utilisé lors de l'installation peut lire ces fichiers directement, sans votre phrase secrète — c'est précisément pourquoi nous recommandons de le supprimer une fois l'installation terminée. Les photos (si activées) sont stockées dans le stockage d'objets Cloudflare R2 — le niveau gratuit est de 10 Go/mois, bien qu'une carte bancaire enregistrée soit requise pour activer R2, même gratuitement.</div> <!-- needs-review -->
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="card-icon">💳</span>Sans abonnement — rechargez un solde, utilisez ce dont vous avez besoin</div> <!-- needs-review -->
+        <div class="card-desc">Vous ajoutez des crédits à vos propres comptes Anthropic et OpenAI (comme des soldes prépayés) et vous ne payez que ce que vous utilisez. Cela représente quelques dollars par mois au départ, et cela augmente à mesure que votre mémoire grandit — chaque question renvoie tout ce que vous avez écrit, donc une mémoire volumineuse et utilisée depuis longtemps coûte plus cher par question qu'une petite. Tapez <code>/costs</code> à tout moment pour voir votre total cumulé, et fixez un plafond quotidien dans les Paramètres. Les réponses vocales utilisent OpenAI TTS (voix Marin &amp; Onyx, paiement à l'utilisation depuis le même solde OpenAI) ou ElevenLabs (voix Brittney &amp; Callum — également au paiement à l'utilisation ; quelques dollars de crédit ElevenLabs couvrent une utilisation normale). Aucun abonnement obligatoire — pour quoi que ce soit.</div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Commands -->
+  <div class="section">
+    <h2>Commandes</h2> <!-- needs-review -->
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">Tapez <code style="font-family:monospace;color:var(--green)">/</code> dans le champ de chat pour voir les suggestions de saisie automatique — les noms de commandes sont reconnus de façon approximative, vous n'avez donc pas besoin de les taper exactement.</p> <!-- needs-review -->
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px;"><span class="cmd-badge badge-free" style="display:inline;">free</span> — n'utilise jamais vos crédits d'API &nbsp;&nbsp; <span class="cmd-badge badge-tokens" style="display:inline;">tokens</span> — débite de votre solde prépayé Anthropic (généralement &lt;$0,01) &nbsp;&nbsp; <span class="cmd-badge badge-free" style="display:inline;">free*</span> — gratuit pour la navigation ; coûte des tokens si un terme de recherche est fourni</p> <!-- needs-review -->
+
+    <!-- Search & Edit -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Recherche et édition</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/edit [query]</span>
+          <span class="cmd-desc">Ouvrir un enregistrement dans l'éditeur — parcourir et modifier sans dépenser de tokens</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/references [name]</span>
+          <span class="cmd-desc">Trouver tous les enregistrements qui mentionnent un nom ou un sujet</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/recall [query]</span>
+          <span class="cmd-desc">Parcourir les en-têtes du stockage froid (/recall seul — gratuit) ou rechercher par nom/sujet — Haiku trouve des correspondances (coûte des tokens). Appuyez sur un résultat pour le prévisualiser, le restaurer ou l'ajouter au contexte du chat.</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free*</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/browse [file]</span>
+          <span class="cmd-desc">Lister tous les en-têtes d'enregistrements dans un fichier — people / loops / archive people / cold fragments…</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/delete [query]</span>
+          <span class="cmd-desc">Supprimer définitivement un enregistrement — nécessite de taper "delete" pour confirmer</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journal -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Journal</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/journal &lt;entry&gt;</span>
+          <span class="cmd-desc">Peaufiner et enregistrer une entrée horodatée dans reflections.md.</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/journal-flush [days]</span>
+          <span class="cmd-desc">Déplacer les entrées de plus de N jours vers les archives (par défaut : 60)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Archive -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Archives</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/archive [query]</span>
+          <span class="cmd-desc">Déplacer un enregistrement vers les archives à long terme</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/archive-review</span>
+          <span class="cmd-desc">L'IA suggère des candidats à archiver · ajoutez [file] [deep] [context]</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/archive-review ignored</span>
+          <span class="cmd-desc">Voir et désactiver l'ignoré des suggestions d'archivage rejetées</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep [query]</span>
+          <span class="cmd-desc">Déplacer un enregistrement vers le stockage froid (niveau d'accès rare)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep-review</span>
+          <span class="cmd-desc">L'IA suggère des candidats pour le stockage froid · ajoutez [file] [criteria]</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/deep-review ignored</span>
+          <span class="cmd-desc">Voir et désactiver l'ignoré des suggestions de deep-review rejetées</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/restore [query]</span>
+          <span class="cmd-desc">Restaurer un enregistrement des archives ou du stockage froid vers la mémoire active</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Compacter</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/compact [query]</span>
+          <span class="cmd-desc">Compacter un enregistrement spécifique — choisissez Normal / Moyen / Élevé dans le panneau d'aperçu</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/compact-review · /compact-review [file]</span>
+          <span class="cmd-desc">Détecter les enregistrements verbeux dans toute la mémoire — appuyez sur Charger sur chacun pour choisir un niveau</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory Audit -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Audit mémoire</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/audit</span>
+          <span class="cmd-desc">Analyser les problèmes d'intégrité — caractères cassés, violations de format, incohérences de dates (analyse rapide)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/audit deep</span>
+          <span class="cmd-desc">Ajoute la détection de quasi-doublons et d'incohérences de noms assistée par Haiku, ainsi que des vérifications d'intégrité des photos (références cassées, fichiers orphelins) — le coût est confirmé avant l'exécution</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/audit ignored</span>
+          <span class="cmd-desc">Voir les résultats rejetés et désactiver l'ignoré des entrées individuelles</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory tools -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Outils mémoire</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/mnemonic [name] · /mnemonic [name: your text]</span>
+          <span class="cmd-desc">Générer des aide-mémoire pour une personne, ou enregistrer les vôtres</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/memory-game</span>
+          <span class="cmd-desc">Quiz de mémoire sur les personnes — 5 questions, puis continuer ?</span> <!-- needs-review -->
+          <span class="cmd-badge badge-tokens">tokens</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utility -->
+    <div class="cmd-group">
+      <div class="cmd-group-title">Utilitaires</div> <!-- needs-review -->
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd-name">/costs</span>
+          <span class="cmd-desc">Afficher l'estimation du coût de l'API Claude du jour et de la semaine</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/diagnostics</span>
+          <span class="cmd-desc">État du système : tailles mémoire, clés API, journal des coûts, erreurs</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/security</span>
+          <span class="cmd-desc">Afficher l'historique des accès récents — horodatage, localisation, appareil et ce qui s'est passé : connexions, tentatives échouées, utilisation de la Clé d'Accès et chaque export ou import</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/r</span>
+          <span class="cmd-desc">Réinitialiser le contexte de conversation (la mémoire reste chargée)</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/cls</span>
+          <span class="cmd-desc">Effacer l'historique et le contexte du chat</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/export</span>
+          <span class="cmd-desc">Télécharger une sauvegarde chiffrée (.whoszoo) — inclut tous les fichiers de mémoire et les photos stockées. Demande d'abord votre phrase secrète et enregistre l'export dans <code>/security</code>.</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/export-plain</span>
+          <span class="cmd-desc">Télécharger un zip en texte brut (non chiffré). Demande d'abord votre phrase secrète et enregistre l'export dans <code>/security</code>.</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/import</span>
+          <span class="cmd-desc">Restaurer les fichiers mémoire depuis une sauvegarde chiffrée. Demande d'abord votre phrase secrète et enregistre l'import dans <code>/security</code>.</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/import-contacts</span>
+          <span class="cmd-desc">Importer des contacts depuis un fichier .vcf (vCard) ou .csv — crée des enregistrements dans people.md</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/help</span>
+          <span class="cmd-desc">Afficher la liste des commandes dans le chat</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/l</span>
+          <span class="cmd-desc">Verrouiller l'app immédiatement</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd-name">/reset</span>
+          <span class="cmd-desc">Effacer tous les fichiers mémoire en modèles vides — nécessite de taper votre Clé d'Accès pour confirmer</span> <!-- needs-review -->
+          <span class="cmd-badge badge-free">free</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory Audit -->
+  <div class="section" id="audit">
+    <h2>Audit mémoire</h2> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px;">L'audit recherche des <strong style="color:var(--text);">problèmes d'intégrité</strong> dans votre mémoire — caractères cassés dans les métadonnées, en-têtes mal formés, incohérences de dates — séparément des nudges du <em>cycle de vie de la mémoire</em> basés sur la taille.</p> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px;"><code style="font-family:monospace;color:var(--green)">/audit</code> exécute l'analyse rapide gratuite sur vos fichiers actifs et archivés. <code style="font-family:monospace;color:var(--green)">/audit deep</code> ajoute la détection de quasi-doublons et d'incohérences de noms assistée par Haiku, ainsi que des vérifications d'intégrité des photos : références cassées (une photo listée dans une fiche mais absente du stockage) et fichiers orphelins (dans le stockage mais référencés nulle part). Coûte quelques centimes — vous confirmez l'estimation avant l'exécution. <code style="font-family:monospace;color:var(--green)">/audit ignored</code> liste les résultats que vous avez rejetés et vous permet de désactiver l'ignoré des entrées individuelles.</p> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);">Chaque résultat a deux actions : <strong style="color:var(--text);">Ouvrir</strong> (accède à la fenêtre d'édition de l'enregistrement pour que vous puissiez le corriger) et <strong style="color:var(--text);">Ignorer</strong> (supprime ce problème précis dans les futurs audits).</p> <!-- needs-review -->
+  </div>
+
+  <!-- Header controls -->
+  <div class="section">
+    <h2>Contrôles de l'en-tête</h2> <!-- needs-review -->
+    <div class="controls-grid">
+      <div class="control-row">
+        <span class="control-icon">■</span>
+        <span class="control-label">Arrêter</span> <!-- needs-review -->
+        <span class="control-desc">Apparaît à la place du bouton d'envoi pendant que Claude génère une réponse. Appuyez dessus pour annuler la réponse immédiatement. Le bouton d'envoi réapparaît automatiquement une fois la réponse terminée ou annulée.</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">⚡</span>
+        <span class="control-label">Haiku / Sonnet</span>
+        <span class="control-desc">Appuyez pour changer de modèle d'IA. Haiku est rapide et économique. Sonnet est plus intelligent pour les tâches complexes.</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">📋</span>
+        <span class="control-label">Copier le chat</span> <!-- needs-review -->
+        <span class="control-desc">Copie la conversation complète dans le presse-papiers avec les étiquettes Vous / WhosWhoZoo — utile pour partager ou déboguer.</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🎙</span>
+        <span class="control-label">Mode vocal</span> <!-- needs-review -->
+        <span class="control-desc">Mode conversation complet — parlez et écoutez la réponse. Le bouton 🎙 dans l'en-tête du chat ouvre la superposition orbe en plein écran. Après avoir parlé, un bouton Envoyer apparaît — appuyez dessus (ou sur l'orbe) pour envoyer. Appuyez sur ✕ pour quitter. Maintenez l'orbe enfoncé pour entrer en mode dictée de journal. Un bouton micro séparé dans la barre de saisie gère la voix-vers-texte pour le mode chat (appuyez pour démarrer, appuyez pour arrêter).</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">⚙</span>
+        <span class="control-label">Paramètres</span> <!-- needs-review -->
+        <span class="control-desc">Mettez à jour votre URL Worker, changez votre mot de passe, configurez le déverrouillage par empreinte digitale, gérez les remplacements de clés API (Anthropic, OpenAI, ElevenLabs), configurez le verrouillage automatique, définissez un plafond de dépenses Anthropic quotidien ($1/$2/$5/$10/Jamais — par défaut $1/jour), choisissez votre langue d'affichage, activez ou désactivez Token Saver (activé par défaut — efface l'historique de conversation à la sortie du mode vocal pour économiser des tokens de contexte ; désactivez-le pour conserver l'historique entre les sessions vocales), ou déconnectez-vous. La clé d'accès n'est nécessaire que lors de la configuration initiale ou de la réinitialisation du mot de passe — Paramètres affiche un rappel à côté de Changer le mot de passe indiquant qu'elle peut être renouvelée sur whoszoo.app/setup.</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🌐</span>
+        <span class="control-label">Langue</span> <!-- needs-review -->
+        <span class="control-desc">Paramètres → menu déroulant Langue. Choisissez English, Español, Français ou हिन्दी (Hindi). Affecte tous les libellés de l'interface, boutons, notifications et textes des modales. Les commandes restent toujours en anglais — tapez <code style="font-family:monospace;color:var(--green)">/archive</code>, <code style="font-family:monospace;color:var(--green)">/edit</code>, etc. quelle que soit la langue. Claude répond dans la langue dans laquelle vous écrivez — ce réglage ne change pas ça. Prend effet au prochain rechargement de page (une invite de rechargement apparaît après le changement).</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">💾</span>
+        <span class="control-label">badge cached</span> <!-- needs-review -->
+        <span class="control-desc">Apparaît lorsque le contexte mémoire de Claude a été servi depuis le cache — plus rapide et moins cher qu'un rechargement complet.</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">📦</span>
+        <span class="control-label">Archives</span> <!-- needs-review -->
+        <span class="control-desc">Appuyez pour inclure les fichiers d'archives dans le chat et la recherche. Appuyez à nouveau pour désactiver. Le stockage froid est séparé — utilisez /recall pour l'ouvrir.</span> <!-- needs-review -->
+      </div>
+      <div class="control-row">
+        <span class="control-icon">🔐</span>
+        <span class="control-label">Stockage froid</span> <!-- needs-review -->
+        <span class="control-desc">Indique combien d'enregistrements sont dans le stockage froid. Appuyez pour les parcourir tous. Lorsqu'un enregistrement du stockage froid est chargé pour le chat, une barre violette apparaît au-dessus du champ de saisie — appuyez sur effacer pour le supprimer.</span> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Input -->
+  <div class="section">
+    <h2>Modes de saisie vocale</h2> <!-- needs-review -->
+    <p style="font-size:14px;color:var(--text-dim);margin-bottom:16px;">Deux moteurs de transcription sont disponibles. Basculez entre eux dans <strong style="color:var(--text);">Paramètres → Saisie vocale</strong>. Le paramètre persiste entre les sessions.</p> <!-- needs-review -->
+    <div class="cards">
+      <div class="card" style="border-left: 3px solid var(--accent);">
+        <div class="card-title"><span class="card-icon">⚡</span>Auto — rapide, gratuit, natif du navigateur</div> <!-- needs-review -->
+        <div class="card-desc">Utilise l'API Web Speech Recognition intégrée du navigateur. Instantané — la transcription apparaît au fur et à mesure que vous parlez. Aucun crédit API utilisé. La précision dépend de votre navigateur et de votre accent. Idéal pour les questions rapides et la plupart des usages quotidiens. Sur iOS, Auto bascule toujours vers Whisper car iOS Safari ne prend pas en charge la Web Speech API.</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--amber);">
+        <div class="card-title"><span class="card-icon">🎙</span>Whisper — précis, coût minime, légère latence</div> <!-- needs-review -->
+        <div class="card-desc">Envoie l'audio au modèle Whisper-1 d'OpenAI via l'endpoint <code style="font-family:monospace;color:var(--green)">/transcribe</code> de votre worker. Plus précis qu'Auto — surtout pour les noms, les termes techniques et les environnements plus silencieux. Coûte une infime fraction de centime par clip (facturé sur votre compte OpenAI). Ajoute un temps de réponse de 1 à 3 secondes pendant le traitement de l'audio. Nécessite que votre clé API OpenAI soit configurée.</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title"><span class="card-icon">🌐</span>Langue vocale — Whisper uniquement</div> <!-- needs-review -->
+        <div class="card-desc">Paramètres → Langue vocale. Définit la langue que Whisper écoute : English, हिन्दी (Hindi), Español ou Français. Par défaut : English. Fixer la langue empêche Whisper de générer du texte incorrect sur un audio quasi-silencieux — un défaut connu quand aucune langue n'est précisée. S'applique uniquement au mode Whisper ; Auto utilise la reconnaissance vocale du navigateur, qui détecte la langue automatiquement.</div> <!-- needs-review -->
+      </div>
+      <div class="card" style="border-left: 3px solid var(--text-dim);">
+        <div class="card-title"><span class="card-icon">💾</span>Token Saver — Paramètres → Token Saver</div> <!-- needs-review -->
+        <div class="card-desc">Contrôle ce qui arrive à la conversation lorsque vous fermez le mode vocal. <strong>Activé (par défaut) :</strong> l'historique de conversation est effacé à la sortie — libère des tokens de contexte pour que la prochaine session démarre à zéro. <strong>Désactivé :</strong> l'historique de conversation est conservé — vous pouvez reprendre le chat exactement là où vous l'avez laissé après avoir fermé le mode vocal. Désactivez-le si vous voulez conserver le contexte entre les sessions vocales.</div> <!-- needs-review -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="section">
+    <h2>Conseils</h2> <!-- needs-review -->
+    <div class="tips-list">
+      <div class="tip"><strong>Posez des questions naturellement.</strong> Vous n'avez pas besoin de commandes pour la plupart des choses. « Qui est Adam ? » ou « que sais-je sur le projet PTMM ? » fonctionnent comme de simples questions.</div> <!-- needs-review -->
+      <div class="tip"><strong>Les mots seuls déclenchent la recherche par balise.</strong> Tapez un seul mot ou une expression sans verbe et l'app recherche exhaustivement cette balise dans tous les enregistrements avant de répondre.</div> <!-- needs-review -->
+      <div class="tip"><strong>Ajoutez une portée de fichier à n'importe quelle recherche.</strong> <code style="font-family:monospace;color:var(--green)">/edit people adam</code> limite à people.md. <code style="font-family:monospace;color:var(--green)">/archive loops</code> archive uniquement depuis loops.md.</div> <!-- needs-review -->
+      <div class="tip"><strong>Les archives maintiennent Claude rapide.</strong> Déplacez les enregistrements périmés vers les archives. Ils restent consultables avec le bouton 📦 Archives activé — ils ne sont simplement pas chargés à chaque message du chat.</div> <!-- needs-review -->
+      <div class="tip"><strong>La voix ignore les URL et le code.</strong> En mode conversation, les liens disent « voir le lien dans le chat » et le code dit « voir le code dans le chat » — le contenu complet est toujours dans la bulle de chat.</div> <!-- needs-review -->
+      <div class="tip"><strong>/r est votre soupape de réinitialisation.</strong> Si une conversation déraille, /r efface le contexte sans perdre vos fichiers mémoire.</div> <!-- needs-review -->
+      <div class="tip"><strong>Ajoutez des enregistrements du stockage froid au chat.</strong> Utilisez <strong>/recall [nom]</strong> pour trouver un enregistrement du stockage froid, puis appuyez sur « Utiliser dans le chat » — une barre violette apparaît au-dessus du champ de saisie confirmant que l'enregistrement est chargé. Claude le verra dans chaque message jusqu'à ce que vous appuyiez sur effacer.</div> <!-- needs-review -->
+      <div class="tip"><strong>Les fichiers mémoire sont en Markdown.</strong> Lorsque vous modifiez des enregistrements directement avec <code style="font-family:monospace;color:var(--green)">/edit</code>, les en-têtes utilisent <code style="font-family:monospace;color:var(--green);">##</code>, les puces utilisent <code style="font-family:monospace;color:var(--green);">-</code>, et le gras utilise <code style="font-family:monospace;color:var(--green);">**texte**</code>. Vous n'êtes pas sûr de la syntaxe ? <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Syntaxe Markdown de base →</a></div> <!-- needs-review -->
+      <div class="tip"><strong>Installez sur votre écran d'accueil pour une expérience d'app native.</strong> L'app fonctionne comme une app installée en plein écran sur les deux plateformes — sans App Store requis.<br><br>
+        <strong>Chrome, Edge ou Samsung Internet :</strong> après connexion, repérez une bannière <em>Installer</em> en un tap au-dessus du champ de message — appuyez dessus, c'est fait. N'apparaît pas sur Safari/iPhone (cette option n'existe pas là-bas) ni si l'app est déjà installée.<br><br>
+        <strong>Android (manuel) :</strong> Ouvrez l'URL de votre app dans Chrome → appuyez sur le menu à trois points → <em>Ajouter à l'écran d'accueil.</em><br>
+        <strong>iPhone :</strong> Ouvrez l'URL de votre app dans Safari (pas Chrome) → appuyez sur le bouton Partager (carré avec flèche) → <em>Sur l'écran d'accueil.</em><br><br>
+        Une fois installée, l'app se lance sans le chrome du navigateur. Le déverrouillage biométrique (empreinte digitale ou Face ID) peut également devenir disponible s'il ne fonctionnait pas dans l'onglet du navigateur.</div> <!-- needs-review -->
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:0;">
+    <h2>Besoin d'aide supplémentaire ?</h2> <!-- needs-review -->
+    <a id="support-link" href="support.html?from=help&amp;origin=app&amp;lang=fr&amp;v=1.8.6" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-radius:var(--radius);text-decoration:none;color:var(--text);">
+      <span>
+        <span style="font-weight:600;font-size:15px;">Référence technique et dépannage</span><br> <!-- needs-review -->
+        <span style="font-size:13px;color:var(--text-dim);">Cycle de vie de la mémoire, Clé d'Accès, votre jeton Cloudflare, gestion des clés API, réinstallation propre et corrections courantes</span> <!-- needs-review -->
+      </span>
+      <span style="color:var(--text-dim);font-size:18px;margin-left:12px;">→</span>
+    </a>
+    <script>
+      document.getElementById("support-link").href = "support.html?from=help&origin=" + (_from || "app") + "&depth=2&lang=fr&v=1.8.6";
+    </script>
+  </div>
+
+  <div class="page-footer">
+    WhosWhoZoo · <a id="help-footer-back" href="index.html" style="color:var(--text-dim);text-decoration:none;">← Retour à l'app</a> <!-- needs-review -->
+  </div>
+  <script>
+    const _helpFooterBack = document.getElementById("help-footer-back");
+    if (_from === "settings") _helpFooterBack.textContent = "← Retour aux paramètres"; // needs-review
+    _helpFooterBack.addEventListener("click", e => { e.preventDefault(); history.back(); });
+  </script>
+
+</div>
+</body>
+</html>
