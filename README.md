@@ -3,7 +3,8 @@
 A personal AI memory assistant that stores your notes in your own Cloudflare account.
 You chat with Claude about the people in your life — family, colleagues, clients — and it
 remembers them. Your notes are plain markdown files in your own Cloudflare KV. There is no
-WhosZoo server holding a copy, and the developer has no way to read them.
+WhosZoo server holding a copy, and no ongoing access to them from here — once the app
+is deployed, it never contacts WhosZoo again.
 
 Answering a question means sending your notes to Claude, so Anthropic processes them per
 request under their API terms, which exclude API traffic from training. Every outbound
