@@ -1,9 +1,14 @@
 # WhosZoo
 
-A personal AI memory assistant that runs entirely inside your own Cloudflare account.
+A personal AI memory assistant that stores your notes in your own Cloudflare account.
 You chat with Claude about the people in your life — family, colleagues, clients — and it
-remembers them. Your notes are plain markdown files in your own Cloudflare KV. Nobody
-else can read them, including the developer, because there is no server in the middle.
+remembers them. Your notes are plain markdown files in your own Cloudflare KV. There is no
+WhosZoo server holding a copy, and the developer has no way to read them.
+
+Answering a question means sending your notes to Claude, so Anthropic processes them per
+request under their API terms, which exclude API traffic from training. Every outbound
+path — including the one that leaves your browser rather than your Worker — is itemised at
+[whoszoo.app/privacy](https://whoszoo.app/privacy).
 
 This repository contains the application: the Cloudflare Worker and the frontend it
 serves. Both are MIT licensed. You can deploy them yourself with `wrangler`, and the
@@ -11,7 +16,8 @@ instructions below are complete — not a teaser.
 
 ## The honest bit, up front
 
-This is open core, and it's worth being direct about where the line sits.
+The whole application is MIT licensed. What costs money is the setup, not the software —
+and it's worth being direct about where that line sits.
 
 **MIT licensed and in this repo:**
 
