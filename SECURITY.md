@@ -1,6 +1,6 @@
 # Security
 
-If you find a vulnerability in this code, please email **hansreno@gmail.com** rather than
+If you find a vulnerability in this code, please email **renocreationsutah@gmail.com** rather than
 opening a public issue. I'll acknowledge within a few days.
 
 This is a one-person project, so I can't promise a fix window — but I'd rather hear about a
