@@ -11,7 +11,7 @@ import { buildStaticPrompt, buildDynamicPrompt } from "./system-prompt.js";
 // Reads/writes memory files from Cloudflare KV.
 // Calls Claude API server-side for chat.
 
-const WORKER_VERSION = "1.8.49";
+const WORKER_VERSION = "1.8.50";
 
 const MEMORY_FILES = ["people.md", "reflections.md", "fragments.md", "loops.md"];
 const ARCHIVE_FILES = ["archive_people.md", "archive_reflections.md", "archive_fragments.md", "archive_loops.md"];
@@ -2847,6 +2847,69 @@ export function findSubsectionParent(lines, name) {
   return null;
 }
 
+// Bullet text is written by a model against lines a human may have typed or edited,
+// so the two rarely agree on typography: "-" against "–", a trailing period, a
+// capitalised first word. Matching byte-exactly made every one of those a dead end,
+// and because the error named neither what was sought nor what was present, a retry
+// could only reproduce the same guess — observed failing three times identically on
+// a real record.
+//
+// Normalising formatting fixes that without loosening what actually matters: the
+// CONTENT still has to match. And when normalisation makes two lines
+// indistinguishable, this refuses rather than picking one, the same way
+// findSectionSpan refuses an ambiguous section name — a destructive op should not be
+// more willing to guess than the rest of this file.
+export function normalizeBulletText(s) {
+  return String(s == null ? "" : s)
+    .trim()
+    .replace(/^[-–—•*]+\s*/, "")
+    .replace(/\s+/g, " ")
+    .replace(/[.;,:]+$/, "")
+    .toLowerCase();
+}
+
+// { idx } on success; { idx: -1, reason } otherwise, where reason is "empty",
+// "ambiguous" or "missing".
+export function findBulletIndex(block, text) {
+  const exactWanted = String(text == null ? "" : text).trim();
+  if (!exactWanted) return { idx: -1, reason: "empty" };
+
+  // An exact hit always wins — normalisation must never override a precise match.
+  const exact = block.findIndex(l => String(l == null ? "" : l).trim() === exactWanted);
+  if (exact >= 0) return { idx: exact };
+
+  const wanted = normalizeBulletText(exactWanted);
+  if (!wanted) return { idx: -1, reason: "empty" };
+  const hits = [];
+  for (let i = 0; i < block.length; i++) {
+    if (normalizeBulletText(block[i]) === wanted) hits.push(i);
+  }
+  if (hits.length === 1) return { idx: hits[0] };
+  return { idx: -1, reason: hits.length > 1 ? "ambiguous" : "missing" };
+}
+
+// Put the lines that WERE there into the failure. The point is that a failed write
+// becomes self-correcting: the model can see the real text and retry against it,
+// instead of being told only that it was wrong.
+export function bulletsInBlock(block, limit = 10) {
+  return block
+    .filter(l => /^\s*[-–—•*]\s+\S/.test(String(l == null ? "" : l)))
+    .map(l => String(l).trim())
+    .slice(0, limit);
+}
+
+// The message a failed bullet op returns. It carries what was sought and what was
+// actually present, because the previous "bullet not found" gave a retry nothing to
+// work with and the same wrong guess came back.
+export function bulletMiss(sought, reason, block) {
+  const present = bulletsInBlock(block);
+  const listed = present.length ? ` Bullets in this section: ${present.map(b => `"${b}"`).join(", ")}` : " No bullets in this section.";
+  if (reason === "ambiguous") {
+    return `bullet ambiguous: "${sought}" matches more than one line once formatting is ignored — send the exact text.${listed}`;
+  }
+  return `bullet not found: "${sought}".${listed}`;
+}
+
 export function findSectionSpan(lines, section, occurrenceIndex) {
   const want = normKey(section);
   const codeLines = getFencedCodeLines(lines);
@@ -3006,9 +3069,9 @@ async function patchMemoryFile(env, body) {
       const oldText = String(raw.old || raw.oldText || "").trim();
       const newText = String(raw.new || raw.newText || "").trim();
       if (!oldText || !newText) { results.push({ op: kind, ok: false, error: "old and new required" }); continue; }
-      const idx = block.findIndex(l => String(l).trim() === oldText);
-      if (idx < 0) { results.push({ op: kind, ok: false, error: "bullet not found" }); continue; }
-      block[idx] = newText;
+      const hit = findBulletIndex(block, oldText);
+      if (hit.idx < 0) { results.push({ op: kind, ok: false, error: bulletMiss(oldText, hit.reason, block) }); continue; }
+      block[hit.idx] = newText;
       results.push({ op: kind, ok: true });
       continue;
     }
@@ -3016,9 +3079,9 @@ async function patchMemoryFile(env, body) {
     if (kind === "delete-bullet") {
       const text = String(raw.text || "").trim();
       if (!text) { results.push({ op: kind, ok: false, error: "text required" }); continue; }
-      const idx = block.findIndex(l => String(l).trim() === text);
-      if (idx < 0) { results.push({ op: kind, ok: false, error: "bullet not found" }); continue; }
-      block.splice(idx, 1);
+      const hit = findBulletIndex(block, text);
+      if (hit.idx < 0) { results.push({ op: kind, ok: false, error: bulletMiss(text, hit.reason, block) }); continue; }
+      block.splice(hit.idx, 1);
       results.push({ op: kind, ok: true });
       continue;
     }

@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.8.49
-const APP_VERSION = "1.8.49";
+// WhosZoo — Frontend App v1.8.50
+const APP_VERSION = "1.8.50";
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
