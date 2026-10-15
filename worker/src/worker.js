@@ -11,7 +11,7 @@ import { buildStaticPrompt, buildDynamicPrompt } from "./system-prompt.js";
 // Reads/writes memory files from Cloudflare KV.
 // Calls Claude API server-side for chat.
 
-const WORKER_VERSION = "1.8.50";
+const WORKER_VERSION = "1.8.51";
 
 const MEMORY_FILES = ["people.md", "reflections.md", "fragments.md", "loops.md"];
 const ARCHIVE_FILES = ["archive_people.md", "archive_reflections.md", "archive_fragments.md", "archive_loops.md"];
@@ -346,7 +346,7 @@ export default {
       // the frontend may be served from a different origin, and without the
       // expose list X-Resolved-Section is silently invisible there — the
       // subsection fallback would look like it simply didn't happen.
-      "Access-Control-Expose-Headers": "X-Resolved-Section",
+      "Access-Control-Expose-Headers": "X-Resolved-Section, X-Section-Ambiguous",
       "Vary": "Origin",
     };
     const nocache = {
@@ -679,7 +679,16 @@ export default {
               if (parentSpan) { span = parentSpan; resolvedSection = parent; }
             }
           }
-          if (!span) return new Response(`Section not found: ${section}`, { status: 404, headers: { ...cors, ...nocache } });
+          if (!span) {
+            // Still a 404 with the same body, so every existing caller is
+            // unaffected — but say when the name matched several records, so
+            // View Sources can say "can't tell which" instead of "not found".
+            const ambiguous = occurrenceIndex === null && isAmbiguousSectionName(lines, section);
+            return new Response(`Section not found: ${section}`, {
+              status: 404,
+              headers: { ...(ambiguous && { "X-Section-Ambiguous": "1" }), ...cors, ...nocache },
+            });
+          }
           return new Response(lines.slice(span.iHeader, span.iEnd).join("\n"), {
             headers: {
               "Content-Type": "text/plain",
@@ -2832,19 +2841,66 @@ export function getFencedCodeLines(lines) {
 // turning a cosmetic dead link into silent data loss. worker-helpers.test.mjs
 // pins that asymmetry with an explicit strictness guard.
 export function findSubsectionParent(lines, name) {
+  const parents = subsectionParents(lines, name);
+  // Every person record shares sub-heading names (### Family, ### Summary,
+  // ### Timeline...), so a citation of one names no record at all. Picking the
+  // first match opened the WRONG person from "View sources" with no warning;
+  // refuse instead, as findSectionSpan does for ambiguous names.
+  if (parents.length !== 1) return null;
+  // Records are counted by position, not title: two separate "## John Smith"
+  // records make the title itself ambiguous, and the caller resolves the title
+  // through findSectionSpan, whose scoring could then open the other one.
+  const title = parents[0].title;
+  const sameTitle = h2Headings(lines).filter(h => normKey(h.title) === normKey(title));
+  return sameTitle.length === 1 ? title : null;
+}
+
+// H1/H2 headings outside code fences, as { idx, level, title }.
+function h2Headings(lines) {
+  const codeLines = getFencedCodeLines(lines);
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (codeLines.has(i)) continue;
+    const m = String(lines[i] || "").match(/^\s*(#{1,2})\s+(?:👤\s*)?(.+?)\s*$/);
+    if (m) out.push({ idx: i, level: m[1].length, title: m[2] });
+  }
+  return out;
+}
+
+// Distinct H2 records (by line position) that contain an interior heading
+// matching `name`.
+function subsectionParents(lines, name) {
   const want = normKey(name);
   const codeLines = getFencedCodeLines(lines);
-  let currentH2 = null;
+  let current = null;
+  const parents = new Map();
   for (let i = 0; i < lines.length; i++) {
     if (codeLines.has(i)) continue;
     // 👤 is the person emoji some headings carry, same as findSectionSpan.
     const m = String(lines[i] || "").match(/^\s*(#{1,6})\s+(?:👤\s*)?(.+?)\s*$/);
     if (!m) continue;
     const level = m[1].length;
-    if (level <= 2) { currentH2 = level === 2 ? m[2] : null; continue; }
-    if (normKey(m[2]) === want) return currentH2;
+    if (level <= 2) { current = level === 2 ? { idx: i, title: m[2] } : null; continue; }
+    if (current && normKey(m[2]) === want) parents.set(current.idx, current);
   }
-  return null;
+  return [...parents.values()];
+}
+
+// GET /getMemoryFile 404s for a name that is absent AND for one present under
+// several records. View Sources must not report a record "not found in your
+// notes" when it is there twice, so the endpoint flags this case. True when
+// more than one record could be meant: several H1/H2 headings normalising to
+// the name, or the name as an interior heading under several records.
+export function isAmbiguousSectionName(lines, name) {
+  const want = normKey(name);
+  const headings = h2Headings(lines);
+  const direct = headings.filter(h => normKey(h.title) === want).length;
+  // An interior match counts once per record sharing its parent's NAME: a
+  // single "### Work" under one of two "## John Smith" records could still
+  // mean either John Smith, and findSubsectionParent refuses it for that reason.
+  const interior = subsectionParents(lines, name).reduce(
+    (n, p) => n + headings.filter(h => normKey(h.title) === normKey(p.title)).length, 0);
+  return direct + interior > 1;
 }
 
 // Bullet text is written by a model against lines a human may have typed or edited,

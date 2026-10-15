@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.8.50
-const APP_VERSION = "1.8.50";
+// WhosZoo — Frontend App v1.8.51
+const APP_VERSION = "1.8.51";
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -3962,39 +3962,160 @@ function resetContext(silent = false) {
 }
 
 // ---- Sources footer ----
-function appendSourcesFooter(msgEl, replyText, queryText = "", precomputedSources = null) {
+const MEMORY_FILE_RE = /^(?:(archive|deeparchive)_)?(people|reflections|fragments|loops)\.md$/;
+
+// "archive_people.md" used to render as plain PEOPLE — indistinguishable from
+// an active-memory citation.
+function sourceFileLabel(file) {
+  const m = String(file || "").match(MEMORY_FILE_RE);
+  if (!m) return String(file || "").replace(/\.md$/, "").toUpperCase();
+  const tier = m[1] === "archive" ? "ARCHIVE · " : m[1] === "deeparchive" ? "DEEP · " : "";
+  return tier + m[2].toUpperCase();
+}
+
+// Same preview shape /attributeSources builds server-side, so verified
+// citations and fallback matches read alike.
+function sourcePreview(sectionText) {
+  return sectionText.replace(/\r\n/g, "\n").split("\n")
+    .filter(l => l.trim() && !/^\s*##/.test(l))
+    .slice(0, 3).join(" · ").slice(0, 120);
+}
+
+// Every memory file, in the order a misfiled citation is most likely to live.
+const ALL_MEMORY_FILES = ["", "archive_", "deeparchive_"].flatMap(t =>
+  ["people", "reflections", "fragments", "loops"].map(f => `${t}${f}.md`));
+
+// One lookup: "found" (with preview), "ambiguous" (the name matches several
+// records), "missing" (a definite 404), or "unverified" (could not check — a
+// network or auth failure must never be reported as an absent record).
+// resolved: set when the cited name was a sub-heading and the worker opened
+// the record containing it — the card must then say WHICH record that is.
+async function lookupSource(file, section) {
+  // A stalled request must not leave "Checking sources…" up forever; a
+  // timeout is just another "could not check".
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await api(`/getMemoryFile?filename=${encodeURIComponent(file)}&section=${encodeURIComponent(section)}`, "GET", null, true, ctrl.signal);
+    if (res.status === 404) return { status: res.headers.get("X-Section-Ambiguous") === "1" ? "ambiguous" : "missing" };
+    if (!res.ok) return { status: "unverified" };
+    const resolvedRaw = res.headers.get("X-Resolved-Section");
+    return {
+      status: "found",
+      preview: sourcePreview(await res.text()),
+      ...(resolvedRaw && { resolved: decodeURIComponent(resolvedRaw) }),
+    };
+  } catch {
+    return { status: "unverified" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function verifyCitedSources(cited) {
+  const seen = new Set();
+  const unique = [];
+  for (const s of cited || []) {
+    if (!s || typeof s.section !== "string" || !s.section.trim()) continue;
+    const key = `${s.file}::${s.section.trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push({ file: String(s.file || ""), section: s.section.trim() });
+  }
+  const checked = await Promise.all(unique.slice(0, 8).map(async s => {
+    const first = MEMORY_FILE_RE.test(s.file) ? await lookupSource(s.file, s.section) : { status: "missing" };
+    if (first.status !== "missing") return { ...s, ...first };
+    // Absent from the cited file is not absent from memory: the answer may
+    // have named the wrong file, or the record may have been archived since.
+    // Look everywhere before saying it does not exist, and show where it is.
+    // Only a whole-record match counts out here: a generic sub-heading
+    // ("Family", "Timeline") that happens to be unique in some OTHER file is
+    // almost certainly a different person's. It exists, so it is not
+    // "missing" — but it does not identify the record the answer meant.
+    const others = ALL_MEMORY_FILES.filter(f => f !== s.file);
+    const results = (await Promise.all(others.map(f => lookupSource(f, s.section))))
+      .map(r => (r.status === "found" && r.resolved ? { status: "ambiguous" } : r));
+    if (results.some(r => r.status === "ambiguous")) return { ...s, status: "ambiguous" };
+    const hit = results.findIndex(r => r.status === "found");
+    if (hit >= 0) return { file: others[hit], section: s.section, ...results[hit] };
+    if (results.some(r => r.status === "unverified")) return { ...s, status: "unverified" };
+    return { ...s, status: "missing" };
+  }));
+  const pick = st => checked.filter(c => c.status === st);
+  return {
+    found: checked.filter(c => c.status === "found" || c.status === "unverified").map(({ status, ...c }) => c),
+    missing: pick("missing"),
+    ambiguous: pick("ambiguous"),
+    unverified: pick("unverified").length,
+  };
+}
+
+function appendSourcesFooter(msgEl, replyText, queryText = "", precomputedSources = null, verify = true) {
   const bar = document.createElement("div");
   bar.className = "sources-bar";
   const btn = document.createElement("button");
   btn.className = "sources-link";
   btn.textContent = "🔗 View sources";
 
-  function renderSources(sourceList) {
+  function note(text) {
+    const el = document.createElement("div");
+    el.className = "sources-zero";
+    el.textContent = text;
+    bar.appendChild(el);
+  }
+
+  // missing: cited records that exist in no memory file at all.
+  // ambiguous: cited names that don't identify one record, so none is shown.
+  // unverified: how many shown cards could not be checked (network, session).
+  // guessed: the answer cited nothing and these came from the name-matching
+  // fallback — they must not look like citations, because they are not.
+  function renderSources(sourceList, { missing = [], ambiguous = [], unverified = 0, guessed = false } = {}) {
     btn.remove();
-    if (!sourceList || sourceList.length === 0) {
-      const zero = document.createElement("div");
-      zero.className = "sources-zero";
-      zero.textContent = "No specific records were used for this response.";
-      bar.appendChild(zero);
+    if ((!sourceList || sourceList.length === 0) && missing.length === 0 && ambiguous.length === 0) {
+      note("No specific records were used for this response.");
       return;
     }
-    const listEl = document.createElement("div");
-    listEl.className = "sources-results";
-    sourceList.forEach(r => {
-      const card = document.createElement("button");
-      card.className = "delete-result-btn";
-      const fileLabel = r.file.replace("archive_", "").replace(".md", "").toUpperCase();
-      card.innerHTML = `<span class="delete-result-file">${escapeHtml(fileLabel)}</span> › <span class="delete-result-section">${escapeHtml(r.section)}</span>${r.preview ? `<span class="delete-result-preview">${escapeHtml(r.preview)}</span>` : ""}`;
-      card.addEventListener("click", () => runEditSection(r.file, r.section));
-      listEl.appendChild(card);
-    });
-    bar.appendChild(listEl);
+    if (guessed && sourceList.length) {
+      note("No sources were cited with this answer. These records only match names it mentions — they may not be where it came from.");
+    }
+    if (sourceList.length) {
+      const listEl = document.createElement("div");
+      listEl.className = "sources-results";
+      sourceList.forEach(r => {
+        const card = document.createElement("button");
+        card.className = "delete-result-btn";
+        card.innerHTML = `<span class="delete-result-file">${escapeHtml(sourceFileLabel(r.file))}</span> › <span class="delete-result-section">${escapeHtml(r.resolved ? `${r.resolved} — ${r.section}` : r.section)}</span>${r.preview ? `<span class="delete-result-preview">${escapeHtml(r.preview)}</span>` : ""}`;
+        card.addEventListener("click", () => runEditSection(r.file, r.section));
+        listEl.appendChild(card);
+      });
+      bar.appendChild(listEl);
+    }
+    const quote = list => list.map(m => `“${m.section}”`).join(", ");
+    if (unverified) {
+      note(`Couldn't check ${unverified === 1 ? "one of these" : unverified + " of these"} against your notes just now.`);
+    }
+    if (ambiguous.length) {
+      note(`The answer cited ${quote(ambiguous)}, which doesn't point to a single record, so it can't tell which one was meant.`);
+    }
+    if (missing.length) {
+      note(`Cited by the answer but not found anywhere in your notes: ${quote(missing)}. Treat what it said about ${missing.length === 1 ? "that record" : "those records"} with caution.`);
+    }
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   btn.addEventListener("click", async () => {
-    if (precomputedSources !== null) {
+    if (precomputedSources !== null && !verify) {
       renderSources(precomputedSources);
+      return;
+    }
+    if (precomputedSources !== null) {
+      // The answer's own citations are model output, not facts: check each one
+      // against memory before showing it as a source. A record is only
+      // called missing after every memory file has answered with a plain 404.
+      btn.disabled = true;
+      btn.textContent = "🔗 Checking sources…";
+      const { found, ...rest } = await verifyCitedSources(precomputedSources);
+      renderSources(found, rest);
       return;
     }
     // Fallback: ask Haiku (only fires if Claude omitted the <sources> tag)
@@ -4003,7 +4124,7 @@ function appendSourcesFooter(msgEl, replyText, queryText = "", precomputedSource
     try {
       const res = await api("/attributeSources", "POST", { replyText, queryText, includeArchive: archiveMode >= 1 });
       const data = await res.json();
-      renderSources(data.ok ? (data.sources || []) : []);
+      renderSources(data.ok ? (data.sources || []) : [], { guessed: true });
     } catch {
       btn.disabled = false;
       btn.textContent = "🔗 View sources";
@@ -4766,7 +4887,7 @@ previewConfirm.addEventListener("click", async () => {
     }
 
     const confirmEl = appendMessage("assistant", confirmMsg);
-    if (savedSection) appendSourcesFooter(confirmEl, "", "", [{ file: savedFile, section: savedSection }]);
+    if (savedSection) appendSourcesFooter(confirmEl, "", "", [{ file: savedFile, section: savedSection }], false);
     dismissWelcomeCard();
     // Do not push save confirmations to messages — Claude reloads KV fresh on every
     // /chat request, so the history assertion is redundant and can become stale or

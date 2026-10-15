@@ -21,6 +21,7 @@ import {
   parseH2Sections,
   getFencedCodeLines,
   findSubsectionParent,
+  isAmbiguousSectionName,
 } from "../src/worker.js";
 
 // ---- normKey -----------------------------------------------------------
@@ -274,6 +275,101 @@ test("findSubsectionParent ignores ### inside code fences", () => {
     "```",
   ].join("\n").split("\n");
   assert.equal(findSubsectionParent(lines, "decoy sub in code block"), null);
+});
+
+// Every person record shares the same sub-heading names (### Summary, ### Family,
+// ### Timeline, ### Contact...). A citation naming one of those identifies no
+// record at all. Returning the first record that has it opened the WRONG person
+// from "View sources" — confidently, with no "not found" to warn anyone. The
+// lookup must refuse, the same way findSectionSpan refuses an ambiguous name.
+const TWO_PEOPLE_MD = [
+  "# people.md",
+  "",
+  "## Aaron Smith",
+  "### Summary",
+  "Neighbor.",
+  "### Family",
+  "– Wife: Beth",
+  "",
+  "## Jason Howes",
+  "### Summary",
+  "Coworker.",
+  "### Family",
+  "– Daughter: Lily",
+  "### Gym Schedule",
+  "– Tuesdays",
+].join("\n");
+
+test("findSubsectionParent refuses a sub-heading shared by more than one record", () => {
+  const lines = TWO_PEOPLE_MD.split("\n");
+  assert.equal(findSubsectionParent(lines, "Family"), null);
+  assert.equal(findSubsectionParent(lines, "summary"), null);
+});
+
+test("findSubsectionParent still resolves a sub-heading unique to one record", () => {
+  const lines = TWO_PEOPLE_MD.split("\n");
+  assert.equal(findSubsectionParent(lines, "Gym Schedule"), "Jason Howes");
+});
+
+test("findSubsectionParent resolves a sub-heading repeated inside ONE record", () => {
+  // Same parent twice is not ambiguous — there is only one record it can mean.
+  const lines = ["## Trip Log", "### Notes", "– a", "### Notes", "– b", "## Other"].join("\n").split("\n");
+  assert.equal(findSubsectionParent(lines, "Notes"), "Trip Log");
+});
+
+test("findSubsectionParent refuses when two SEPARATE records share the parent's name", () => {
+  // Two distinct "## John Smith" records: the H2 title alone cannot say which
+  // one holds "### Gym", so returning the title would let findSectionSpan's
+  // scoring open the other John Smith — the wrong-person bug by another route.
+  const lines = [
+    "## John Smith", "### Gym", "– Tuesdays",
+    "## John Smith", "### Family", "– Son: Ty",
+  ].join("\n").split("\n");
+  assert.equal(findSubsectionParent(lines, "Gym"), null);
+});
+
+// ---- isAmbiguousSectionName ---------------------------------------------
+// GET /getMemoryFile 404s both for a name that is absent and for one that is
+// present under several records. View Sources must not tell the user a cited
+// record "isn't in your notes" when it is there twice — so the endpoint flags
+// ambiguity and this decides it.
+
+test("isAmbiguousSectionName: shared sub-heading is ambiguous", () => {
+  const lines = TWO_PEOPLE_MD.split("\n");
+  assert.equal(isAmbiguousSectionName(lines, "Family"), true);
+});
+
+test("isAmbiguousSectionName: a sub-heading under a record whose NAME is duplicated is ambiguous", () => {
+  // Only one "### Work" exists, but it sits under one of two "## John Smith"
+  // records — the citation could mean either person. findSubsectionParent
+  // refuses it, so without this flag View Sources would call a heading that
+  // plainly exists "not found anywhere in your notes".
+  const lines = [
+    "## John Smith", "### Work", "– Plumber",
+    "## John Smith", "### Family", "– Son: Ty",
+  ].join("\n").split("\n");
+  assert.equal(findSubsectionParent(lines, "Work"), null);
+  assert.equal(isAmbiguousSectionName(lines, "Work"), true);
+});
+
+test("isAmbiguousSectionName: absent name is not ambiguous", () => {
+  const lines = TWO_PEOPLE_MD.split("\n");
+  assert.equal(isAmbiguousSectionName(lines, "Jason Howel"), false);
+});
+
+test("isAmbiguousSectionName: unique sub-heading is not ambiguous", () => {
+  const lines = TWO_PEOPLE_MD.split("\n");
+  assert.equal(isAmbiguousSectionName(lines, "Gym Schedule"), false);
+});
+
+test("isAmbiguousSectionName: two records with the same H2 name are ambiguous", () => {
+  const lines = ["## John Smith", "– a", "## John Smith", "– b"].join("\n").split("\n");
+  assert.equal(isAmbiguousSectionName(lines, "John Smith"), true);
+});
+
+test("isAmbiguousSectionName: names differing only by accent count as ambiguous", () => {
+  const lines = ["## José García", "– a", "## Jose Garcia", "– b"].join("\n").split("\n");
+  assert.equal(isAmbiguousSectionName(lines, "jose garcia "), true);
 });
 
 test("findSubsectionParent normalizes names the same way findSectionSpan does", () => {
