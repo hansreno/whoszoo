@@ -509,3 +509,13 @@ test("PBKDF2 iterations stay within the Workers runtime ceiling", () => {
   assert.ok(PBKDF2.legacy <= WORKERS_MAX_ITERATIONS);
   assert.ok(PBKDF2.current >= PBKDF2.legacy, "never store weaker than existing records");
 });
+
+// ---- /diagnostics: voice runs on the Cloudflare AI binding (v1.9.0) ----
+import { readFileSync } from "node:fs";
+const workerSrc = readFileSync(new URL("../src/worker.js", import.meta.url), "utf8");
+
+test("/diagnostics reports the AI connection and no longer lists OpenAI", () => {
+  const diag = workerSrc.slice(workerSrc.indexOf('path === "/diagnostics"'), workerSrc.indexOf('path === "/polishText"'));
+  assert.match(diag, /voice:\s*\{\s*aiConnected:\s*!!env\.AI\s*\}/);
+  assert.doesNotMatch(diag, /OPENAI_API_KEY/);
+});

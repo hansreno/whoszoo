@@ -1,6 +1,6 @@
 {
   "name": "whoszoo-worker",
-  "version": "1.8.51",
+  "version": "1.9.0",
   "type": "module",
   "description": "Cloudflare Worker and test suite for WhosWhoZoo.",
   "scripts": {

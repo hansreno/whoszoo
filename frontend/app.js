@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.8.51
-const APP_VERSION = "1.8.51";
+// WhosZoo — Frontend App v1.9.0
+const APP_VERSION = "1.9.0";
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -97,8 +97,15 @@ let pendingRecallContext = null; // { section, file, content } — vault record 
 let attachmentsInHistory = []; // { name, type } of attachments already sent — stays until /cls
 let dragCounter = 0;
 let modelPref = localStorage.getItem("whoszoo_model") || "haiku";
-let voicePref = localStorage.getItem("whoszoo_voice") || "marin";
-const VOICES = ["brittney", "marin", "callum", "onyx"];
+// Retired OpenAI voices (shut down 2027-01-06) map to their Cloudflare
+// replacements, so a phone with an old saved preference keeps speaking.
+const VOICE_MIGRATION = { marin: "asteria", onyx: "orion" };
+let voicePref = localStorage.getItem("whoszoo_voice") || "asteria";
+if (VOICE_MIGRATION[voicePref]) {
+  voicePref = VOICE_MIGRATION[voicePref];
+  try { localStorage.setItem("whoszoo_voice", voicePref); } catch {}
+}
+const VOICES = ["asteria", "orion", "brittney", "callum"];
 // archiveMode: 0=off, 1=archive tier on
 // Migration: old "true"→1, "false"/"null"→0, "2"→1 (deep mode removed in v1.3.0)
 const _rawArchive = localStorage.getItem("whoszoo_archive");
@@ -994,7 +1001,6 @@ const panelTokenSaver     = document.getElementById("panel-token-saver");
 
 const apikeyRows = [
   { key: "ANTHROPIC_API_KEY", input: document.getElementById("apikey-anthropic"),    save: document.getElementById("apikey-anthropic-save"),    status: document.getElementById("apikey-anthropic-status"),    clear: document.getElementById("apikey-anthropic-clear") },
-  { key: "OPENAI_API_KEY",    input: document.getElementById("apikey-openai"),        save: document.getElementById("apikey-openai-save"),        status: document.getElementById("apikey-openai-status"),        clear: document.getElementById("apikey-openai-clear") },
   { key: "ELEVENLABS_API_KEY",input: document.getElementById("apikey-elevenlabs"),    save: document.getElementById("apikey-elevenlabs-save"),    status: document.getElementById("apikey-elevenlabs-status"),    clear: document.getElementById("apikey-elevenlabs-clear") },
 ];
 
@@ -1160,7 +1166,7 @@ async function loadApiKeyStatus() {
     if (!res.ok) return;
     const data = await res.json();
     const keys = data.keys || {};
-    const nameMap = { ANTHROPIC_API_KEY: "anthropic", OPENAI_API_KEY: "openai", ELEVENLABS_API_KEY: "elevenlabs" };
+    const nameMap = { ANTHROPIC_API_KEY: "anthropic", ELEVENLABS_API_KEY: "elevenlabs" };
     for (const row of apikeyRows) {
       const info = keys[nameMap[row.key]];
       const hasOverride = info?.source === "app";
@@ -1997,9 +2003,9 @@ async function sendMessage(text, brief = false, silent = false) {
         const left = `  ${label}  ${ok ? "✓" : "✗ MISSING"}  ${desc.padEnd(36)}`;
         return hint ? left + " ·  " + hint : left.trimEnd();
       };
-      lines.push(keyFmt("Anthropic:  ", d.keys.anthropic,  "Claude AI (chat + memory analysis)", d.keys.anthropicHint));
-      lines.push(keyFmt("ElevenLabs: ", d.keys.elevenlabs, "Brittney + Callum voices",           d.keys.elevenLabsHint));
-      lines.push(keyFmt("OpenAI:     ", d.keys.openai,     "Marin + Onyx voices",                d.keys.openaiHint));
+      lines.push(keyFmt("Anthropic:  ", d.keys.anthropic?.configured,  "Claude AI (chat + memory analysis)", d.keys.anthropicHint));
+      lines.push(keyFmt("ElevenLabs: ", d.keys.elevenlabs?.configured, "Brittney + Callum voices (optional)", d.keys.elevenLabsHint));
+      lines.push(keyFmt("Voice:      ", d.voice?.aiConnected,          "Cloudflare AI: Asteria, Orion, voice-to-text", d.voice?.aiConnected ? "" : "re-run the update at whoszoo.app/setup"));
       if (d.recentErrors.length > 0) {
         lines.push("");
         lines.push(`Recent errors (${d.recentErrors.length}):`);
@@ -2016,7 +2022,7 @@ async function sendMessage(text, brief = false, silent = false) {
       } catch {}
       lines.push("");
       lines.push(`WhosWhoZoo v${APP_VERSION} · Built by Hans Reno`);
-      lines.push("Stack: Cloudflare Workers · KV · Claude API · ElevenLabs · OpenAI TTS");
+      lines.push("Stack: Cloudflare Workers · KV · Workers AI (voice) · Claude API · ElevenLabs (optional)");
       appendMessage("system", lines.join("\n"));
     } catch (err) {
       appendMessage("system", `Diagnostics failed: ${err.message}`);
@@ -2214,7 +2220,7 @@ async function sendMessage(text, brief = false, silent = false) {
           lines.push(`  ${label}  ${String(d.requests).padStart(3)} req · ${fmt(d.cost)}`);
         }
       }
-      lines.push("", "Claude API costs only. Voice/TTS (ElevenLabs or OpenAI) is billed separately by your provider.");
+      lines.push("", "Claude API costs only. Voice runs on Cloudflare's free daily AI allowance; ElevenLabs voices, if used, are billed by ElevenLabs.");
       appendMessage("system", lines.join("\n"));
     } catch (err) {
       appendMessage("system", `Could not load costs: ${err.message}`);
@@ -4974,8 +4980,8 @@ updateModelBtn();
 
 // ---- Voice toggle ----
 function updateVoiceBtn() {
-  const labels = { brittney: "Brittney", marin: "Marin", callum: "Callum", onyx: "Onyx" };
-  voiceBtn.textContent = "🎙 " + (labels[voicePref] || "Brittney");
+  const labels = { asteria: "Asteria", orion: "Orion", brittney: "Brittney", callum: "Callum" };
+  voiceBtn.textContent = "🎙 " + (labels[voicePref] || "Asteria");
 }
 voiceBtn.addEventListener("click", () => {
   const idx = VOICES.indexOf(voicePref);
@@ -8364,7 +8370,11 @@ async function transcribeAudio(blob) {
       signal: whisperTranscribeAbort.signal,
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Transcription failed");
+    if (!data.ok) {
+      const err = new Error(data.error || "Transcription failed");
+      err.code = data.error;
+      throw err;
+    }
     return (data.text || "").trim();
   } finally {
     whisperTranscribeAbort = null;
@@ -8397,7 +8407,11 @@ async function handleWhisperResult(blob) {
     }
   } catch (err) {
     if (whisperResultGen !== myGen) return;
-    showToast(t("toast.transcription-failed"));
+    // Clear the "Transcribing…" placeholder: left in place it reads as still working.
+    if (!journalDictating) convTranscriptEl.textContent = "";
+    // A journal chunk can be minutes of dictation; never discard it on a refusal.
+    if (journalDictating) keepFailedRecording(blob);
+    if (!noteVoiceProblem(err && err.code)) showToast(t("toast.transcription-failed"));
     setConvState(fallback);
   }
 }
@@ -8531,6 +8545,43 @@ function stripMdForSpeech(text) {
     .trim();
 }
 
+// A journal recording that could not be transcribed (daily allowance used up,
+// network, size) is minutes of someone's words. Offer it as a file in the chat
+// instead of dropping it. The object URL lives for the page session.
+function keepFailedRecording(blob) {
+  try {
+    if (!blob || !blob.size) return;
+    const ext = String(blob.type || "").includes("mp4") ? "m4a" : "webm";
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+    const msg = appendMessage("system", t("voice.recording-kept"));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `journal-${stamp}.${ext}`;
+    a.textContent = t("voice.recording-download");
+    a.style.cssText = "display:block;margin-top:6px;color:#a78bfa;";
+    msg.appendChild(a);
+  } catch {}
+}
+
+// The chat message appears once per problem per day, so a long voice session
+// does not stack the same warning under every reply. The toast shows on EVERY
+// failure: a repeat failure with nothing on screen looks like a frozen app
+// (v1.9.0 live test). Returns true when it handled the code.
+function noteVoiceProblem(code) {
+  const keys = { voice_allowance_exhausted: "voice.allowance-exhausted", ai_not_configured: "voice.ai-not-configured" };
+  if (!keys[code]) return false;
+  showToast(t(keys[code]));
+  const today = new Date().toLocaleDateString("en-CA");
+  const storeKey = "whoszoo_voice_notice_" + code;
+  let seen = null;
+  try { seen = localStorage.getItem(storeKey); } catch {}
+  if (seen !== today) {
+    try { localStorage.setItem(storeKey, today); } catch {}
+    appendMessage("system", t(keys[code]));
+  }
+  return true;
+}
+
 function speakWithBrowser(text) {
   return new Promise(resolve => {
     if (!window.speechSynthesis) { resolve(); return; }
@@ -8568,11 +8619,24 @@ async function speakText(text, autoLoop = false) {
   }
 
   try {
+    // Aura voices are English-only. For another speech language use the phone's
+    // own voice (silent on iOS outside a gesture, the same as any fallback).
+    const speechLang = (localStorage.getItem(WHISPER_LANG_KEY) || "en").toLowerCase();
+    const browserOnly = (voicePref === "asteria" || voicePref === "orion") && !speechLang.startsWith("en");
     convSpeakAbort = new AbortController();
-    const res = await api("/speak", "POST", { text: spokenText, voice: voicePref }, true, convSpeakAbort?.signal);
+    const res = browserOnly ? null : await api("/speak", "POST", { text: spokenText, voice: voicePref }, true, convSpeakAbort?.signal);
     convSpeakAbort = null;
-    if (!res.ok) {
-      await speakWithBrowser(spokenText);
+    if (!res || !res.ok) {
+      let code = null;
+      if (res) {
+        try { code = (await res.json()).error; } catch {}
+        noteVoiceProblem(code);
+      }
+      // iOS ignores speechSynthesis outside a gesture, so only speakWithBrowser's
+      // watchdog (up to 60 s) ended it and the orb sat on "speaking" for each
+      // reply. On iPhone, skip it for the cases that now happen routinely.
+      const skipBrowserVoice = isIOS() && (browserOnly || code === "voice_allowance_exhausted" || code === "ai_not_configured");
+      if (!skipBrowserVoice) await speakWithBrowser(spokenText);
       if (convMode && autoLoop && convState !== "paused") {
         if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
         else { convListen(); }
@@ -9682,7 +9746,7 @@ function attachPasswordEye(input) {
 }
 // All password-type inputs across the app get the same SVG eye toggle — the
 // canonical show/hide affordance. Backup-modal inputs (export/import/reset/
-// access-key gate) and API-key inputs (anthropic/openai/elevenlabs) used to
+// access-key gate) and API-key inputs (anthropic/elevenlabs) used to
 // have a separate text "show" button or no toggle at all; consolidated here
 // so every secret field has the same look.
 [
@@ -9690,7 +9754,7 @@ function attachPasswordEye(input) {
   "cp-current", "cp-new", "cp-confirm",
   "access-key-gate-input", "reset-access-key",
   "export-pw", "export-pw2", "import-pw",
-  "apikey-anthropic", "apikey-openai", "apikey-elevenlabs",
+  "apikey-anthropic", "apikey-elevenlabs",
 ].forEach(id => attachPasswordEye(document.getElementById(id)));
 
 init();

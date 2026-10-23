@@ -331,8 +331,8 @@
         <span class="kv-val">Claude AI — all chat and memory analysis. Check usage at <a href="https://console.anthropic.com/settings/cost" target="_blank">console.anthropic.com</a></span>
       </div>
       <div class="kv-row">
-        <span class="kv-key">OPENAI_API_KEY</span>
-        <span class="kv-val">Marin &amp; Onyx voices (TTS). Check usage at <a href="https://platform.openai.com/usage" target="_blank">platform.openai.com/usage</a></span>
+        <span class="kv-key">AI (connection)</span>
+        <span class="kv-val">Asteria &amp; Orion voices and Whisper voice input, on Cloudflare's AI service in your own account. Not a key — the setup wizard adds it. Check it with <code>/diagnostics</code> (the Voice line).</span>
       </div>
       <div class="kv-row">
         <span class="kv-key">ELEVENLABS_API_KEY</span>
@@ -397,7 +397,7 @@
       </div>
       <div class="kv-row">
         <span class="kv-key">Worker Secrets</span>
-        <span class="kv-val"><code style="font-family:monospace;font-size:12px;color:var(--green)">ANTHROPIC_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">OPENAI_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">ELEVENLABS_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">WORKER_KEY</code> (Access Key), <code style="font-family:monospace;font-size:12px;color:var(--green)">USER_NAME</code>. Write-only — not readable even via Cloudflare dashboard.</span>
+        <span class="kv-val"><code style="font-family:monospace;font-size:12px;color:var(--green)">ANTHROPIC_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">ELEVENLABS_API_KEY</code>, <code style="font-family:monospace;font-size:12px;color:var(--green)">WORKER_KEY</code> (Access Key), <code style="font-family:monospace;font-size:12px;color:var(--green)">USER_NAME</code>. Write-only — not readable even via Cloudflare dashboard.</span>
       </div>
       <div class="kv-row">
         <span class="kv-key">Frontend (static assets)</span>
@@ -726,7 +726,7 @@ Hasn't been in touch since 2022.</pre>
       </div>
       <div class="trouble">
         <div class="trouble-q">Claude returns "daily spend cap reached" (402 error)</div>
-        <div class="trouble-a">Your daily Anthropic spend cap has been reached. Go to <strong>Settings → Daily spend cap</strong> and increase the limit or set it to Never. The cap resets at midnight UTC. OpenAI TTS and ElevenLabs voices are unaffected — only Claude API calls are capped.</div>
+        <div class="trouble-a">Your daily Anthropic spend cap has been reached. Go to <strong>Settings → Daily spend cap</strong> and increase the limit or set it to Never. The cap resets at midnight UTC. Voice (Cloudflare and ElevenLabs) is unaffected — only Claude API calls are capped. Cloudflare voice has its own free daily allowance, which also resets at midnight UTC.</div>
       </div>
       <div class="trouble">
         <div class="trouble-q">Claude returns "cap check failed" (503 error)</div>
@@ -734,7 +734,7 @@ Hasn't been in touch since 2022.</pre>
       </div>
       <div class="trouble">
         <div class="trouble-q">Voices aren't working</div>
-        <div class="trouble-a">Check which voice is selected (Marin/Onyx use OpenAI; Brittney/Callum use ElevenLabs). Go to <strong>Settings → API Keys</strong> and update the relevant key. If the key is fine, check your usage quota at the provider's dashboard.</div>
+        <div class="trouble-a">Check which voice is selected. <strong>Asteria and Orion</strong> run on Cloudflare's AI service: type <code>/diagnostics</code> and check the Voice line — if it shows ✗, run the update at whoszoo.app/setup to add the AI connection. If the app said today's free voice allowance is used up — about 30 spoken replies a day in Asteria or Orion — voice comes back after midnight UTC; Auto voice input and Brittney/Callum keep working meanwhile. <strong>Brittney and Callum</strong> use ElevenLabs: go to <strong>Settings → API Keys</strong> and check that key and your ElevenLabs credit.</div>
       </div>
       <div class="trouble">
         <div class="trouble-q">I forgot my passphrase</div>

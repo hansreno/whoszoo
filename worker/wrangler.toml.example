@@ -17,3 +17,8 @@ id = "YOUR_KV_NAMESPACE_ID"
 [[r2_buckets]]
 binding = "DOWNLOADS"
 bucket_name = "whoszoo-files"
+
+# Cloudflare Workers AI — speaks replies (Aura-1) and transcribes voice
+# (Whisper). Required for voice since v1.9.0; the setup wizard adds it.
+[ai]
+binding = "AI"

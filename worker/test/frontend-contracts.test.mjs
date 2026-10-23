@@ -328,3 +328,59 @@ test("Enter inserts a newline on touch devices instead of sending", () => {
     "newline and the send button is the only way to send"
   );
 });
+
+// ---- Voice moved to Cloudflare (v1.9.0) -----------------------------------
+
+test("voice list is Asteria, Orion, Brittney, Callum — no retired OpenAI voices", () => {
+  assert.match(appCode, /const VOICES = \["asteria", "orion", "brittney", "callum"\];/);
+  assert.doesNotMatch(appCode, /"onyx"\s*\]/);
+});
+
+test("a saved Marin/Onyx preference is migrated to Asteria/Orion", () => {
+  assert.match(appCode, /marin:\s*"asteria"/);
+  assert.match(appCode, /onyx:\s*"orion"/);
+});
+
+test("voice-allowance and missing-AI errors get their own notices, not the generic failure", () => {
+  assert.match(appCode, /function noteVoiceProblem\(/);
+  assert.match(appCode, /"voice_allowance_exhausted"|voice_allowance_exhausted:/);
+  assert.match(appCode, /"ai_not_configured"|ai_not_configured:/);
+  // Transcription path must route the allowance code to the notice rather than
+  // the "Transcription failed — check your key" toast.
+  const hw = appCode.slice(appCode.indexOf("async function handleWhisperResult"), appCode.indexOf("function processWhisperChunk"));
+  assert.match(hw, /noteVoiceProblem\(/);
+});
+
+test("Settings no longer offers an OpenAI key", () => {
+  assert.doesNotMatch(appCode, /OPENAI_API_KEY/);
+});
+
+test("a repeat voice failure is never silent: the toast shows every time, only the chat message is once a day", () => {
+  // v1.9.0 live test: after the first allowance notice of the day, later
+  // failures showed nothing at all and "Transcribing…" sat on screen forever.
+  const fn = appCode.slice(appCode.indexOf("function noteVoiceProblem("), appCode.indexOf("function speakWithBrowser("));
+  const toastAt = fn.indexOf("showToast(");
+  const onceGate = fn.indexOf("if (seen !== today)");
+  assert.ok(toastAt > -1 && onceGate > -1, "noteVoiceProblem must toast and gate the chat message");
+  assert.ok(toastAt < onceGate, "showToast must run before (outside) the once-per-day gate");
+});
+
+test("a failed transcription clears the 'Transcribing…' placeholder", () => {
+  const hw = appCode.slice(appCode.indexOf("async function handleWhisperResult"), appCode.indexOf("function processWhisperChunk"));
+  const catchBlock = hw.slice(hw.lastIndexOf("catch (err)"));
+  assert.match(catchBlock, /convTranscriptEl\.textContent\s*=\s*""/);
+});
+
+test("iPhone does not wait on the silent browser voice after an allowance/AI refusal (final review)", () => {
+  // iOS ignores speechSynthesis outside a gesture, so only speakWithBrowser's
+  // watchdog (up to 60 s) ended it — the orb sat on "speaking" per reply.
+  const st = appCode.slice(appCode.indexOf("async function speakText("), appCode.indexOf("const BACKUP_FILES"));
+  assert.match(st, /isIOS\(\)/);
+  assert.match(st, /skipBrowserVoice/);
+});
+
+test("a journal recording that cannot be transcribed is kept for the user, not discarded (final review)", () => {
+  assert.match(appCode, /function keepFailedRecording\(/);
+  const hw = appCode.slice(appCode.indexOf("async function handleWhisperResult"), appCode.indexOf("function processWhisperChunk"));
+  assert.match(hw.slice(hw.lastIndexOf("catch (err)")), /keepFailedRecording\(blob\)/);
+});

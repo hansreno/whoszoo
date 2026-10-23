@@ -22,6 +22,13 @@ import {
   getFencedCodeLines,
   findSubsectionParent,
   isAmbiguousSectionName,
+  VOICE,
+  resolveVoice,
+  trimForSpeech,
+  isAllowanceExhausted,
+  arrayBufferToBase64,
+  buildWhisperInput,
+  isWhisperHallucination,
 } from "../src/worker.js";
 
 // ---- normKey -----------------------------------------------------------
@@ -408,4 +415,110 @@ test("subsection fallback composes into the parent's FULL span", () => {
   assert.ok(block.includes("### TechSmith (Camtasia & Snagit)"), "subsection included");
   assert.ok(block.includes("#### Renewal"), "deeper subsection included");
   assert.ok(!block.includes("## Another Record"), "must stop at the next H2");
+});
+
+// ---- Voice (Cloudflare Aura-1 + optional ElevenLabs) ---------------------
+
+test("resolveVoice maps the two Aura voices to Cloudflare", () => {
+  assert.deepEqual(resolveVoice("asteria"), { provider: "cloudflare", key: "asteria", speaker: "asteria" });
+  assert.deepEqual(resolveVoice("orion"), { provider: "cloudflare", key: "orion", speaker: "orion" });
+});
+
+test("resolveVoice maps the retired OpenAI voices to their replacements", () => {
+  // A cached old frontend, or a phone whose saved preference predates 1.9.0,
+  // still sends these. They must keep speaking, not fail.
+  assert.equal(resolveVoice("marin").speaker, "asteria");
+  assert.equal(resolveVoice("onyx").speaker, "orion");
+  assert.equal(resolveVoice("MARIN").speaker, "asteria");
+});
+
+test("resolveVoice sends Brittney and Callum to ElevenLabs", () => {
+  assert.deepEqual(resolveVoice("brittney"), { provider: "elevenlabs", key: "brittney", voiceId: "kPzsL2i3teMYv0FxEYQ6" });
+  assert.equal(resolveVoice("callum").provider, "elevenlabs");
+});
+
+test("resolveVoice falls back to Asteria for unknown, empty or missing voices", () => {
+  for (const v of ["hans", "", undefined, null, "nonsense", 42]) {
+    assert.deepEqual(resolveVoice(v), { provider: "cloudflare", key: "asteria", speaker: "asteria" }, String(v));
+  }
+});
+
+test("trimForSpeech leaves short text alone", () => {
+  assert.equal(trimForSpeech("Hello there.", 1900), "Hello there.");
+});
+
+test("trimForSpeech cuts at the last sentence end under the limit", () => {
+  const s = "One two three. Four five six. Seven eight nine.";
+  assert.equal(trimForSpeech(s, 30), "One two three. Four five six.");
+});
+
+test("trimForSpeech hard-cuts when no sentence end fits", () => {
+  assert.equal(trimForSpeech("abcdefghij", 4), "abcd");
+});
+
+test("isAllowanceExhausted recognises the Workers AI daily-allocation refusal", () => {
+  // Verbatim from a real Workers AI refusal, captured 2026-10-21 (Task 1 probe).
+  assert.equal(isAllowanceExhausted(new Error("4006: you have used up your daily free allocation of 10,000 neurons, please upgrade to Cloudflare's Workers Paid plan if you would like to continue usage.")), true);
+  assert.equal(isAllowanceExhausted("AiError: 4006: daily free allocation exceeded"), true);
+});
+
+test("isAllowanceExhausted does not misread other failures as the allowance", () => {
+  for (const m of ["Network connection lost", "5007: No such model", "8007: Input text exceeds maximum character limit of 2000.", "Internal error", "", undefined, null]) {
+    assert.equal(isAllowanceExhausted(m === undefined || m === null ? m : new Error(m)), false, String(m));
+  }
+});
+
+test("VOICE is an object, not a bare primitive (workerd refuses primitive exports)", () => {
+  assert.equal(typeof VOICE, "object");
+  assert.equal(VOICE.defaultVoice, "asteria");
+  // Aura-1 rejects text over 2,000 characters (error 8007, Task 1 probe);
+  // the cap must stay below it.
+  assert.ok(VOICE.auraMaxChars < 2000);
+});
+
+test("arrayBufferToBase64 round-trips binary, including large buffers", () => {
+  const bytes = new Uint8Array(200000).map((_, i) => i % 256);
+  const b64 = arrayBufferToBase64(bytes.buffer);
+  assert.deepEqual(new Uint8Array(Buffer.from(b64, "base64")), bytes);
+});
+
+test("buildWhisperInput passes a 2-letter language and enables silence skipping", () => {
+  assert.deepEqual(buildWhisperInput("QUJD", "es"), { audio: "QUJD", language: "es", vad_filter: true });
+});
+
+test("buildWhisperInput reduces region tags and falls back to English", () => {
+  assert.equal(buildWhisperInput("x", "pt-BR").language, "pt");
+  assert.equal(buildWhisperInput("x", "EN").language, "en");
+  for (const bad of ["", null, undefined, "zz-top-1", "123"]) {
+    assert.equal(buildWhisperInput("x", bad).language, "en", String(bad));
+  }
+});
+
+test("isWhisperHallucination catches known silence fillers, not real speech", () => {
+  for (const h of ["Thanks for watching!", "you", "♪ ♪", "[Music]", "Subtitles by the Amara.org community"]) {
+    assert.equal(isWhisperHallucination(h), true, h);
+  }
+  for (const real of ["Thanks for watching the kids yesterday", "Thank you for watching the kids yesterday", "you know what Maria said", "Remind me about Lily"]) {
+    assert.equal(isWhisperHallucination(real), false, real);
+  }
+});
+
+test("trimForSpeech keeps most of a list-shaped reply instead of only its intro (final review)", () => {
+  // Claude's list items rarely end in a period; after markdown stripping each
+  // item is just a line. Treating only ". " as a boundary spoke the 49-char
+  // intro and silently dropped ~1,850 characters of a WHO-TO-CONTACT list.
+  const lines = Array.from({ length: 40 }, (_, i) => `Person ${i + 1} — college friend, reach out about the reunion`);
+  const s = "Here is who to contact this week. Top tier first.\n" + lines.join("\n");
+  const out = trimForSpeech(s, 1900);
+  assert.ok(out.length <= 1900, "within the limit");
+  assert.ok(out.length > 1500, `kept most of it (got ${out.length})`);
+  assert.ok(s.startsWith(out), "a prefix of the original");
+  assert.match(out, /reunion$/, "ends on a whole line");
+});
+
+test("trimForSpeech cuts at a word, not mid-word, when no line or sentence end is near", () => {
+  const s = "word ".repeat(500);
+  const out = trimForSpeech(s, 1900);
+  assert.ok(out.length <= 1900 && out.length > 950);
+  assert.match(out, /word$/);
 });

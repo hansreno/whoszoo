@@ -11,7 +11,7 @@ import { buildStaticPrompt, buildDynamicPrompt } from "./system-prompt.js";
 // Reads/writes memory files from Cloudflare KV.
 // Calls Claude API server-side for chat.
 
-const WORKER_VERSION = "1.8.51";
+const WORKER_VERSION = "1.9.0";
 
 const MEMORY_FILES = ["people.md", "reflections.md", "fragments.md", "loops.md"];
 const ARCHIVE_FILES = ["archive_people.md", "archive_reflections.md", "archive_fragments.md", "archive_loops.md"];
@@ -217,6 +217,108 @@ export const PHOTO_FILENAME_PATTERN = /^(person|reflection|fragment|loop)-[a-z0-
 // Call at the entry of every photo endpoint.
 function requireR2(env, cors, nocache) {
   if (!env.DOWNLOADS) return json({ ok: false, error: "r2_not_configured" }, 503, { ...cors, ...nocache });
+  return null;
+}
+
+// ---- Voice: Cloudflare Workers AI (Aura-1, Whisper) + optional ElevenLabs ----
+// OpenAI's speech models shut down on 2027-01-06 (gpt-4o-mini-tts, tts-1) and
+// 2027-02-26 (whisper-1), with no drop-in HTTP replacement for the voices.
+// Voice now runs on the install's own `AI` binding. See
+// docs/superpowers/specs/2026-10-21-cloudflare-voice-design.md.
+// An exported object, never bare primitives: workerd refuses to boot when a
+// named export of the entrypoint is a primitive (CLAUDE.md).
+export const VOICE = {
+  defaultVoice: "asteria",
+  aura: { asteria: "asteria", orion: "orion" },
+  // Retired OpenAI voices: a cached old frontend or an old saved preference
+  // still sends these, and must keep speaking.
+  aliases: { marin: "asteria", onyx: "orion" },
+  auraModel: "@cf/deepgram/aura-1",
+  // Aura-1 rejects text over 2,000 characters (error 8007, measured 2026-10-21).
+  auraMaxChars: 1900,
+  elevenlabs: { brittney: "kPzsL2i3teMYv0FxEYQ6", callum: "N2lVS1w4EtoT3dr4eOWO" },
+  elevenlabsModel: "eleven_flash_v2_5",
+  whisperModel: "@cf/openai/whisper-large-v3-turbo",
+};
+
+export function resolveVoice(voice) {
+  const raw = typeof voice === "string" ? voice.toLowerCase() : "";
+  const key = VOICE.aliases[raw] || raw;
+  if (VOICE.elevenlabs[key]) return { provider: "elevenlabs", key, voiceId: VOICE.elevenlabs[key] };
+  const speaker = VOICE.aura[key] ? key : VOICE.defaultVoice;
+  return { provider: "cloudflare", key: speaker, speaker };
+}
+
+// Long replies (a WHO-TO-CONTACT tiered list) can exceed what one TTS request
+// accepts. Speaking most of a reply beats speaking none of it, and the full
+// text is always on screen.
+// Line breaks count as boundaries: Claude's list items rarely end in a period,
+// and treating only ". " as one cut a 40-name list down to its one-line intro.
+// A boundary is only used past half the limit, so a single early full stop
+// can't throw most of the reply away; otherwise cut at the last space.
+export function trimForSpeech(text, max) {
+  const s = String(text || "");
+  if (s.length <= max) return s;
+  const head = s.slice(0, max);
+  const floor = Math.floor(max / 2);
+  const lastEnd = Math.max(...[". ", "! ", "? ", ".\n", "\n"].map(b => head.lastIndexOf(b)));
+  if (lastEnd >= floor) return head.slice(0, lastEnd + 1).trimEnd();
+  const lastSpace = head.lastIndexOf(" ");
+  return lastSpace >= floor ? head.slice(0, lastSpace) : head;
+}
+
+// On the Workers Free plan, Workers AI refuses (never bills) once the account's
+// 10,000 daily Neurons are spent, with "4006: you have used up your daily free
+// allocation…". Recognise that refusal specifically so the app can say "used
+// up for today" instead of "something broke".
+export function isAllowanceExhausted(err) {
+  const msg = err == null ? "" : String(err.message || err);
+  return /\b4006\b/.test(msg) || /daily free allocation/i.test(msg);
+}
+
+// btoa() needs a binary string; building it in chunks avoids the argument-count
+// limit String.fromCharCode hits on long recordings (journal chunks run minutes).
+export function arrayBufferToBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+// X-Whisper-Language is a per-device setting ("en" default). Pinning a language
+// prevents cross-language silence hallucinations; anything that is not a usable
+// code falls back to English rather than failing the request.
+export function buildWhisperInput(audioBase64, language) {
+  const m = typeof language === "string" ? language.trim().match(/^([a-z]{2})(?:-[a-z]{2,4})?$/i) : null;
+  return { audio: audioBase64, language: m ? m[1].toLowerCase() : "en", vad_filter: true };
+}
+
+// Phrases Whisper produces from silent or near-silent audio. vad_filter removes
+// most silence before the model sees it; this list is the backstop. Anchored to
+// the whole transcript so real speech that mentions them is untouched.
+export function isWhisperHallucination(text) {
+  const t = String(text || "").trim();
+  return [
+    /^MBC.{0,4}뉴스/i,
+    /^thanks?\s+for\s+watching[.!\s]*$/i,
+    /^subtitles?\s+by\s/i,
+    /^captions?\s+by\s/i,
+    /^♪[\s♪]*$/,
+    /^\[music\]$/i,
+    /^you[.\s]*$/i,
+  ].some(re => re.test(t));
+}
+
+function requireAI(env, cors, nocache) {
+  if (!env.AI) {
+    return json({
+      ok: false,
+      error: "ai_not_configured",
+      detail: "Voice needs the Cloudflare AI connection. Re-run the update at whoszoo.app/setup to add it.",
+    }, 503, { ...cors, ...nocache });
+  }
   return null;
 }
 
@@ -835,37 +937,26 @@ export default {
         return json({ ok: true, filename: body.filename, section: body.section }, 200, { ...cors, ...nocache });
       }
 
-      // POST /speak — convert text to speech
-      // brittney/callum/hans → ElevenLabs; marin/onyx → OpenAI TTS
+      // POST /speak — convert text to speech.
+      // asteria/orion → Cloudflare Aura-1 (AI binding); brittney/callum → ElevenLabs.
+      // marin/onyx are aliases for asteria/orion (see VOICE.aliases).
       if (method === "POST" && path === "/speak") {
         const body = await safeJson(request);
         if (!body || !body.text) {
           return json({ ok: false, error: "text required" }, 400, { ...cors, ...nocache });
         }
-
-        const voiceKey = String(body.voice || "brittney").toLowerCase();
+        const voice = resolveVoice(body.voice);
         const cleanText = stripMarkdownForSpeech(body.text);
 
-        // brittney, callum, hans → ElevenLabs; marin, onyx → OpenAI TTS
-        const ELEVENLABS_VOICES = {
-          brittney: "kPzsL2i3teMYv0FxEYQ6",
-          callum:   "N2lVS1w4EtoT3dr4eOWO",
-        };
-        // marin → gpt-4o-mini-tts; onyx → tts-1
-        const OPENAI_VOICES = {
-          marin: { voice: "marin", model: "gpt-4o-mini-tts" },
-          onyx:  { voice: "onyx",  model: "tts-1" },
-        };
-
-        if (ELEVENLABS_VOICES[voiceKey]) {
+        if (voice.provider === "elevenlabs") {
           const elevenLabsKey = await resolveApiKey(env, "ELEVENLABS_API_KEY");
           if (!elevenLabsKey) {
             return json({ ok: false, error: "ELEVENLABS_API_KEY not configured" }, 500, { ...cors, ...nocache });
           }
-          const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICES[voiceKey]}`, {
+          const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice.voiceId}`, {
             method: "POST",
             headers: { "xi-api-key": elevenLabsKey, "Content-Type": "application/json" },
-            body: JSON.stringify({ text: cleanText, model_id: "eleven_turbo_v2_5", voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+            body: JSON.stringify({ text: cleanText, model_id: VOICE.elevenlabsModel, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
           });
           if (!ttsRes.ok) {
             const err = await ttsRes.text();
@@ -875,23 +966,15 @@ export default {
           return new Response(audioBuffer, { status: 200, headers: { "Content-Type": "audio/mpeg", ...cors } });
         }
 
-        // marin / onyx → OpenAI TTS
-        const openaiKey = await resolveApiKey(env, "OPENAI_API_KEY");
-        if (!openaiKey) {
-          return json({ ok: false, error: "OPENAI_API_KEY not configured" }, 500, { ...cors, ...nocache });
+        const aiBlock = requireAI(env, cors, nocache);
+        if (aiBlock) return aiBlock;
+        try {
+          const audio = await env.AI.run(VOICE.auraModel, { text: trimForSpeech(cleanText, VOICE.auraMaxChars), speaker: voice.speaker });
+          return new Response(audio, { status: 200, headers: { "Content-Type": "audio/mpeg", ...cors } });
+        } catch (e) {
+          if (isAllowanceExhausted(e)) return json({ ok: false, error: "voice_allowance_exhausted" }, 429, { ...cors, ...nocache });
+          return json({ ok: false, error: `Voice error: ${String((e && e.message) || e).slice(0, 160)}` }, 502, { ...cors, ...nocache });
         }
-        const oai = OPENAI_VOICES[voiceKey] || OPENAI_VOICES.marin;
-        const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: oai.model, input: cleanText, voice: oai.voice }),
-        });
-        if (!ttsRes.ok) {
-          const err = await ttsRes.text();
-          return json({ ok: false, error: `OpenAI TTS error: ${err}` }, 502, { ...cors, ...nocache });
-        }
-        // Pipe body directly — avoids buffering full audio in worker, reduces latency
-        return new Response(ttsRes.body, { status: 200, headers: { "Content-Type": "audio/mpeg", ...cors } });
       }
 
       // POST /audit — Quick scan only. Body: { scope }.
@@ -1975,53 +2058,24 @@ ${found.content}`;
         return json({ ok: true }, 200, { ...cors, ...nocache });
       }
 
-      // POST /transcribe — send audio blob to OpenAI Whisper, return transcript text
+      // POST /transcribe — audio blob → text via Cloudflare Whisper (AI binding).
+      // Request/response shape unchanged from the OpenAI whisper-1 version.
       if (method === "POST" && path === "/transcribe") {
-        const openaiKey = await resolveApiKey(env, "OPENAI_API_KEY");
-        if (!openaiKey) return json({ ok: false, error: "OpenAI API key not configured." }, 400, { ...cors, ...nocache });
+        const aiBlock = requireAI(env, cors, nocache);
+        if (aiBlock) return aiBlock;
         const audioBuffer = await request.arrayBuffer();
         if (!audioBuffer || audioBuffer.byteLength === 0)
           return json({ ok: false, error: "No audio received." }, 400, { ...cors, ...nocache });
-        const contentType = request.headers.get("Content-Type") || "audio/webm";
-        const ext = contentType.includes("mp4") || contentType.includes("m4a") ? "m4a"
-                  : contentType.includes("ogg") ? "ogg"
-                  : contentType.includes("wav") ? "wav" : "webm";
-        const form = new FormData();
-        form.append("file", new Blob([audioBuffer], { type: contentType }), `audio.${ext}`);
-        form.append("model", "whisper-1");
-        // Use the caller-supplied language (X-Whisper-Language header) so non-English
-        // users get accurate transcription. Defaults to "en" which avoids the
-        // well-known Whisper-1 silence hallucination ("MBC 뉴스 김재경입니다" etc.).
-        const whisperLang = request.headers.get("X-Whisper-Language") || "en";
-        form.append("language", whisperLang);
-        const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${openaiKey}` },
-          body: form,
-        });
-        if (!res.ok) {
-          const errText = await res.text().catch(() => "");
-          return json({ ok: false, error: `Whisper error ${res.status}: ${errText.slice(0, 120)}` }, 502, { ...cors, ...nocache });
+        const input = buildWhisperInput(arrayBufferToBase64(audioBuffer), request.headers.get("X-Whisper-Language"));
+        let out;
+        try {
+          out = await env.AI.run(VOICE.whisperModel, input);
+        } catch (e) {
+          if (isAllowanceExhausted(e)) return json({ ok: false, error: "voice_allowance_exhausted" }, 429, { ...cors, ...nocache });
+          return json({ ok: false, error: `Transcription error: ${String((e && e.message) || e).slice(0, 160)}` }, 502, { ...cors, ...nocache });
         }
-        const data = await res.json().catch(() => ({}));
-        // Filter known Whisper-1 hallucinations from silent or near-silent audio.
-        // These phrases are produced when the model has no real speech to
-        // transcribe but decides to "fill in" anyway. Returning empty text lets
-        // the frontend's existing `if (!text)` branch bail cleanly with no chunk
-        // created. Patterns are anchored to start-of-string so they don't match
-        // legitimate speech that happens to mention them.
-        const HALLUCINATIONS = [
-          /^MBC.{0,4}뉴스/i,
-          /^thanks?\s+for\s+watching/i,
-          /^subtitles?\s+by\s/i,
-          /^captions?\s+by\s/i,
-          /^♪[\s♪]*$/,
-          /^\[music\]$/i,
-          /^you[.\s]*$/i,
-        ];
-        const transcript = (data.text || "").trim();
-        const isHallucination = HALLUCINATIONS.some(re => re.test(transcript));
-        return json({ ok: true, text: isHallucination ? "" : transcript }, 200, { ...cors, ...nocache });
+        const transcript = String((out && out.text) || "").trim();
+        return json({ ok: true, text: isWhisperHallucination(transcript) ? "" : transcript }, 200, { ...cors, ...nocache });
       }
 
       // POST /putMemoryFile — replace entire file
@@ -2247,7 +2301,7 @@ ${found.content}`;
           costLog: { entries: costDays.length, lastEntry: costDays[costDays.length - 1] || null, trackingErrors: errors.filter(e => e.fn === "trackCost").length },
           recentErrors: errors.slice(0, 5),
           keys: await (async () => {
-            const keyNames = ["ANTHROPIC_API_KEY", "ELEVENLABS_API_KEY", "OPENAI_API_KEY"];
+            const keyNames = ["ANTHROPIC_API_KEY", "ELEVENLABS_API_KEY"];
             const results = {};
             for (const name of keyNames) {
               const kvVal = await env.MEMORY.get("config_" + name.toLowerCase());
@@ -2258,6 +2312,7 @@ ${found.content}`;
             }
             return results;
           })(),
+          voice: { aiConnected: !!env.AI },
         }, 200, { ...cors, ...nocache });
       }
 

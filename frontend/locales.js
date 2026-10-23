@@ -58,7 +58,7 @@ const LOCALES = {
     "settings.label-voice":        "Voice input",
     "settings.opt-auto":           "Auto",
     "settings.opt-whisper":        "Whisper (accurate)",
-    "voice.privacy.body":          "🎙 One quick note before your first voice session: Auto mode is fast and free, but on Chrome and Edge it sends your clip to Google's speech service — not through your own Worker. Fine trade for everyday questions. Speaking about something confidential? Whisper routes the audio through your Worker to OpenAI instead, under no-training terms — a fraction of a cent per clip. Switch anytime in Settings → Voice input.",
+    "voice.privacy.body":          "🎙 One quick note before your first voice session: Auto mode is fast and free, but on Chrome and Edge it sends your clip to Google's speech service — not through your own Worker. Fine trade for everyday questions. Speaking about something confidential? Whisper routes the audio through your Worker to Cloudflare's AI service instead, which doesn't train on it or keep it — covered by Cloudflare's free daily allowance. Switch anytime in Settings → Voice input.",
     "voice.privacy.switch":        "🔒 Use Whisper instead",
     "voice.privacy.keep":          "⚡ Keep Auto",
     "voice.privacy.switched":      "Switched to Whisper",
@@ -80,6 +80,10 @@ const LOCALES = {
     "settings.hint-apikeys":    "Write-only — values are stored on your worker. Leave blank to keep the current key.",
     "settings.apikey-source-setup": "✓ Using key from setup",
     "settings.apikey-source-app":   "✓ Using key saved here",
+    "voice.allowance-exhausted":   "Today's free Cloudflare voice allowance is used up. Replies continue as text, and voice input pauses until tomorrow — type instead.",
+    "voice.ai-not-configured":     "Voice needs the Cloudflare AI connection. Run the update at whoszoo.app/setup to add it.",
+    "voice.recording-kept":        "This journal recording couldn't be transcribed, so it has been kept. Save it below, then type it in or dictate it again later.",
+    "voice.recording-download":    "⬇ Save recording",
     "settings.apikey-not-configured": "Not configured",
     "settings.apikey-btn-save":         "Save",
     "settings.apikey-btn-save-loading": "Saving…",
@@ -255,7 +259,7 @@ const LOCALES = {
     "toast.copy-failed":              "Copy failed — try selecting manually.",
     "toast.context-reset":            "Context reset — memory still loaded.",
     "toast.mic-denied":               "Microphone access denied.",
-    "toast.transcription-failed":     "Transcription failed — check your OpenAI key.",
+    "toast.transcription-failed":     "Transcription failed — try again, or type your message instead.",
     "toast.max-attachments":          "Max {n} attachments per message.",
     "toast.attach-add-instructions":  "Add instructions for the attached file before sending.",
     "toast.archive-on":               "Filing cabinet on — older records included in chat and search.",
@@ -457,7 +461,7 @@ const LOCALES = {
     "settings.label-voice":     "Entrada de voz",
     "settings.opt-auto":        "Auto",
     "settings.opt-whisper":     "Whisper (preciso)",
-    "voice.privacy.body":       "🎙 Una nota rápida antes de tu primera sesión de voz: el modo Auto es rápido y gratuito, pero en Chrome y Edge envía tu grabación al servicio de voz de Google, no a través de tu propio Worker. Para preguntas del día a día es un buen equilibrio. ¿Vas a hablar de algo confidencial? Whisper envía el audio a través de tu Worker a OpenAI, bajo términos que no permiten entrenamiento: una fracción de céntimo por grabación. Puedes cambiarlo cuando quieras en Configuración → Entrada de voz.", // needs-review
+    "voice.privacy.body":       "🎙 Una nota rápida antes de tu primera sesión de voz: el modo Auto es rápido y gratuito, pero en Chrome y Edge envía tu grabación al servicio de voz de Google, no a través de tu propio Worker. Para preguntas del día a día es un buen equilibrio. ¿Vas a hablar de algo confidencial? Whisper envía el audio a través de tu Worker al servicio de IA de Cloudflare, que no entrena con él ni lo conserva; queda cubierto por la asignación diaria gratuita de Cloudflare. Puedes cambiarlo cuando quieras en Configuración → Entrada de voz.", // needs-review
     "voice.privacy.switch":     "🔒 Usar Whisper", // needs-review
     "voice.privacy.keep":       "⚡ Seguir con Auto", // needs-review
     "voice.privacy.switched":   "Cambiado a Whisper", // needs-review
@@ -479,6 +483,10 @@ const LOCALES = {
     "settings.hint-apikeys":    "Solo escritura — los valores se guardan en tu worker. Deja en blanco para mantener la clave actual.", // needs-review
     "settings.apikey-source-setup": "✓ Usando clave de configuración",
     "settings.apikey-source-app":   "✓ Usando clave guardada aquí",
+    "voice.allowance-exhausted":   "Se agotó la asignación gratuita de voz de Cloudflare por hoy. Las respuestas siguen como texto y la entrada por voz se pausa hasta mañana; escribe en su lugar.", // needs-review
+    "voice.ai-not-configured":     "La voz necesita la conexión de IA de Cloudflare. Ejecuta la actualización en whoszoo.app/setup para añadirla.", // needs-review
+    "voice.recording-kept":        "No se pudo transcribir esta grabación del diario, así que se ha conservado. Guárdala abajo y luego escríbela o díctala de nuevo más tarde.", // needs-review
+    "voice.recording-download":    "⬇ Guardar grabación", // needs-review
     "settings.apikey-not-configured": "No configurado",
     "settings.apikey-btn-save":         "Guardar",
     "settings.apikey-btn-save-loading": "Guardando…",
@@ -654,7 +662,7 @@ const LOCALES = {
     "toast.copy-failed":              "Error al copiar — intenta seleccionar manualmente.",
     "toast.context-reset":            "Contexto restablecido — la memoria sigue cargada.",
     "toast.mic-denied":               "Acceso al micrófono denegado.",
-    "toast.transcription-failed":     "Error de transcripción — revisa tu clave de OpenAI.",
+    "toast.transcription-failed":     "Error de transcripción — inténtalo de nuevo o escribe tu mensaje.", // needs-review
     "toast.max-attachments":          "Máximo {n} archivos adjuntos por mensaje.",
     "toast.attach-add-instructions":  "Agrega instrucciones para el archivo adjunto antes de enviar.",
     "toast.archive-on":               "Archivador activado — registros más antiguos incluidos en el chat y la búsqueda.", // needs-review
@@ -856,7 +864,7 @@ const LOCALES = {
     "settings.label-voice":     "Saisie vocale",
     "settings.opt-auto":        "Auto",
     "settings.opt-whisper":     "Whisper (précis)",
-    "voice.privacy.body":       "🎙 Une précision avant votre première session vocale : le mode Auto est rapide et gratuit, mais sur Chrome et Edge il envoie votre extrait au service vocal de Google, et non via votre propre Worker. Pour les questions du quotidien, le compromis est raisonnable. Vous allez parler de quelque chose de confidentiel ? Whisper transmet l'audio via votre Worker à OpenAI, sous des conditions qui excluent l'entraînement — une fraction de centime par extrait. Vous pouvez changer à tout moment dans Paramètres → Saisie vocale.", // needs-review
+    "voice.privacy.body":       "🎙 Une précision avant votre première session vocale : le mode Auto est rapide et gratuit, mais sur Chrome et Edge il envoie votre extrait au service vocal de Google, et non via votre propre Worker. Pour les questions du quotidien, le compromis est raisonnable. Vous allez parler de quelque chose de confidentiel ? Whisper transmet l'audio via votre Worker au service d'IA de Cloudflare, qui ne s'en sert pas pour l'entraînement et ne le conserve pas — couvert par le quota quotidien gratuit de Cloudflare. Vous pouvez changer à tout moment dans Paramètres → Saisie vocale.", // needs-review
     "voice.privacy.switch":     "🔒 Utiliser Whisper", // needs-review
     "voice.privacy.keep":       "⚡ Garder Auto", // needs-review
     "voice.privacy.switched":   "Passé à Whisper", // needs-review
@@ -878,6 +886,10 @@ const LOCALES = {
     "settings.hint-apikeys":    "Écriture seule — les valeurs sont stockées sur votre worker. Laissez vide pour conserver la clé actuelle.", // needs-review
     "settings.apikey-source-setup": "✓ Utilisation de la clé d'installation",
     "settings.apikey-source-app":   "✓ Utilisation de la clé enregistrée ici",
+    "voice.allowance-exhausted":   "L'allocation vocale gratuite de Cloudflare est épuisée pour aujourd'hui. Les réponses continuent en texte et la saisie vocale est suspendue jusqu'à demain ; écrivez plutôt.", // needs-review
+    "voice.ai-not-configured":     "La voix a besoin de la connexion IA de Cloudflare. Lancez la mise à jour sur whoszoo.app/setup pour l'ajouter.", // needs-review
+    "voice.recording-kept":        "Cet enregistrement du journal n'a pas pu être transcrit, il a donc été conservé. Enregistrez-le ci-dessous, puis saisissez-le ou dictez-le à nouveau plus tard.", // needs-review
+    "voice.recording-download":    "⬇ Enregistrer l'audio", // needs-review
     "settings.apikey-not-configured": "Non configuré",
     "settings.apikey-btn-save":         "Enregistrer",
     "settings.apikey-btn-save-loading": "Enregistrement…",
@@ -1053,7 +1065,7 @@ const LOCALES = {
     "toast.copy-failed":              "Échec de la copie — essayez de sélectionner manuellement.",
     "toast.context-reset":            "Contexte réinitialisé — la mémoire est toujours chargée.",
     "toast.mic-denied":               "Accès au microphone refusé.",
-    "toast.transcription-failed":     "Échec de la transcription — vérifiez votre clé OpenAI.",
+    "toast.transcription-failed":     "Échec de la transcription — réessayez ou saisissez votre message.", // needs-review
     "toast.max-attachments":          "Maximum {n} pièces jointes par message.",
     "toast.attach-add-instructions":  "Ajoutez des instructions pour le fichier joint avant d'envoyer.",
     "toast.archive-on":               "Classeur activé — anciens enregistrements inclus dans le chat et la recherche.", // needs-review
@@ -1255,7 +1267,7 @@ const LOCALES = {
     "settings.label-voice":        "वॉयस इनपुट", // needs-review
     "settings.opt-auto":           "Auto",
     "settings.opt-whisper":        "Whisper (सटीक)", // needs-review
-    "voice.privacy.body":          "🎙 आपके पहले वॉयस सेशन से पहले एक बात। Auto मोड तेज़ और मुफ़्त है, लेकिन Chrome और Edge पर यह आपकी रिकॉर्डिंग Google की वॉयस सेवा को भेजता है, आपके अपने Worker से होकर नहीं। रोज़मर्रा के सवालों के लिए यह ठीक सौदा है। कुछ गोपनीय बोलने जा रहे हैं? Whisper ऑडियो को आपके Worker से होकर OpenAI तक भेजता है, ऐसी शर्तों के तहत जो ट्रेनिंग की अनुमति नहीं देतीं, और लागत प्रति रिकॉर्डिंग एक पैसे का अंश भर है। इसे कभी भी सेटिंग्स → वॉयस इनपुट में बदल सकते हैं।", // needs-review
+    "voice.privacy.body":          "🎙 आपके पहले वॉयस सेशन से पहले एक बात। Auto मोड तेज़ और मुफ़्त है, लेकिन Chrome और Edge पर यह आपकी रिकॉर्डिंग Google की वॉयस सेवा को भेजता है, आपके अपने Worker से होकर नहीं। रोज़मर्रा के सवालों के लिए यह ठीक सौदा है। कुछ गोपनीय बोलने जा रहे हैं? Whisper ऑडियो को आपके Worker से होकर Cloudflare की AI सेवा तक भेजता है, जो उस पर ट्रेनिंग नहीं करती और न उसे सहेजकर रखती है, और यह Cloudflare के मुफ़्त दैनिक भत्ते के अंतर्गत आता है। इसे कभी भी सेटिंग्स → वॉयस इनपुट में बदल सकते हैं।", // needs-review
     "voice.privacy.switch":        "🔒 Whisper इस्तेमाल करें", // needs-review
     "voice.privacy.keep":          "⚡ Auto ही रखें", // needs-review
     "voice.privacy.switched":      "Whisper पर बदल दिया", // needs-review
@@ -1277,6 +1289,10 @@ const LOCALES = {
     "settings.hint-apikeys":    "केवल लिखने के लिए — वैल्यू आपके worker पर सेव होती हैं। मौजूदा key रखने के लिए खाली छोड़ें।", // needs-review
     "settings.apikey-source-setup": "✓ सेटअप की key उपयोग हो रही है", // needs-review
     "settings.apikey-source-app":   "✓ यहाँ सेव की गई key उपयोग हो रही है", // needs-review
+    "voice.allowance-exhausted":   "आज का मुफ़्त Cloudflare वॉइस कोटा खत्म हो गया है। जवाब टेक्स्ट में आते रहेंगे और बोलकर लिखना कल तक रुका है — कृपया टाइप करें।", // needs-review
+    "voice.ai-not-configured":     "वॉइस के लिए Cloudflare AI कनेक्शन चाहिए। इसे जोड़ने के लिए whoszoo.app/setup पर अपडेट चलाएँ।", // needs-review
+    "voice.recording-kept":        "इस जर्नल रिकॉर्डिंग को टेक्स्ट में नहीं बदला जा सका, इसलिए इसे संभालकर रखा गया है। इसे नीचे सेव करें, फिर बाद में टाइप करें या दोबारा बोलें।", // needs-review
+    "voice.recording-download":    "⬇ रिकॉर्डिंग सेव करें", // needs-review
     "settings.apikey-not-configured": "कॉन्फ़िगर नहीं है", // needs-review
     "settings.apikey-btn-save":         "सेव करें", // needs-review
     "settings.apikey-btn-save-loading": "सेव हो रहा है…", // needs-review
@@ -1452,7 +1468,7 @@ const LOCALES = {
     "toast.copy-failed":              "कॉपी विफल हुई — मैन्युअल रूप से चुनें।", // needs-review
     "toast.context-reset":            "संदर्भ रीसेट हो गया — मेमोरी अभी भी लोड है।", // needs-review
     "toast.mic-denied":               "माइक्रोफ़ोन का एक्सेस नकारा गया।", // needs-review
-    "toast.transcription-failed":     "ट्रांसक्रिप्शन विफल हुआ — अपनी OpenAI key जाँचें।", // needs-review
+    "toast.transcription-failed":     "ट्रांसक्रिप्शन विफल हुआ — फिर से कोशिश करें, या अपना संदेश टाइप करें।", // needs-review
     "toast.max-attachments":          "प्रति संदेश अधिकतम {n} अटैचमेंट।", // needs-review
     "toast.attach-add-instructions":  "भेजने से पहले संलग्न फ़ाइल के लिए निर्देश जोड़ें।", // needs-review
     "toast.archive-on":               "फाइलिंग कैबिनेट चालू — पुराने रिकॉर्ड chat और खोज में शामिल।", // needs-review

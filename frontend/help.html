@@ -313,7 +313,7 @@
     <div class="cards">
       <div class="card">
         <div class="card-title"><span class="card-icon">🛡️</span>Your data never trains AI models</div>
-        <div class="card-desc">WhosWhoZoo uses the Anthropic API — not the Claude.ai website. API usage is explicitly excluded from model training under Anthropic's terms. Your notes are processed by Claude to answer your questions, but are never stored by Anthropic long-term or used to improve any AI model. If you use voice replies, the spoken text passes through ElevenLabs or OpenAI TTS — also under API terms that prohibit training use.</div>
+        <div class="card-desc">WhosWhoZoo uses the Anthropic API — not the Claude.ai website. API usage is explicitly excluded from model training under Anthropic's terms. Your notes are processed by Claude to answer your questions, but are never stored by Anthropic long-term or used to improve any AI model. If you use voice replies, the spoken text goes to Cloudflare's AI service in your own account, which doesn't train on it or keep it — or to ElevenLabs if you chose Brittney or Callum, whose terms allow training unless you opt out in your ElevenLabs settings.</div>
       </div>
       <div class="card">
         <div class="card-title"><span class="card-icon">☁️</span>Stored at the edge, not a central server</div>
@@ -321,7 +321,7 @@
       </div>
       <div class="card">
         <div class="card-title"><span class="card-icon">💳</span>No subscription — fill a bucket, use what you need</div>
-        <div class="card-desc">You add credits to your own Anthropic and OpenAI accounts (like prepaid balances) and pay only for what you use. That's a few dollars a month starting out, and it grows as your memory does — every question re-sends everything you've written, so a large, long-used memory costs more per question than a small one. Type <code>/costs</code> any time to see your running total, and set a daily cap in Settings. Voice replies use either OpenAI TTS (Marin &amp; Onyx voices, pay-as-you-go from the same OpenAI bucket) or ElevenLabs (Brittney &amp; Callum voices — also pay-as-you-go; a few dollars of ElevenLabs credit covers normal use). No required subscription — for any of it.</div>
+        <div class="card-desc">You add credits to your own Anthropic account (like a prepaid balance) and pay only for what you use. That's a few dollars a month starting out, and it grows as your memory does — every question re-sends everything you've written, so a large, long-used memory costs more per question than a small one. Type <code>/costs</code> any time to see your running total, and set a daily cap in Settings. Voice replies use either Cloudflare's AI service (Asteria &amp; Orion voices — free for about 30 spoken replies a day, after which your device's own voice reads them until midnight UTC) or ElevenLabs (Brittney &amp; Callum voices — optional and pay-as-you-go; a few dollars of ElevenLabs credit covers normal use). No required subscription — for any of it.</div>
       </div>
     </div>
   </div>
@@ -582,7 +582,7 @@
       <div class="control-row">
         <span class="control-icon">⚙</span>
         <span class="control-label">Settings</span>
-        <span class="control-desc">Update your Worker URL, change your passphrase, set up fingerprint unlock, manage API key overrides (Anthropic, OpenAI, ElevenLabs), configure auto-lock timeout, set a daily Anthropic spend cap ($1/$2/$5/$10/Never — default $1/day), choose your display language, toggle Token Saver (on by default — clears conversation history when you exit voice mode to save context tokens; turn off to preserve history across voice sessions), or sign out. Access key is only needed during initial setup or passphrase reset — Settings shows a reminder next to Change passphrase that it can be rotated at whoszoo.app/setup.</span>
+        <span class="control-desc">Update your Worker URL, change your passphrase, set up fingerprint unlock, manage API key overrides (Anthropic, ElevenLabs), configure auto-lock timeout, set a daily Anthropic spend cap ($1/$2/$5/$10/Never — default $1/day), choose your display language, toggle Token Saver (on by default — clears conversation history when you exit voice mode to save context tokens; turn off to preserve history across voice sessions), or sign out. Access key is only needed during initial setup or passphrase reset — Settings shows a reminder next to Change passphrase that it can be rotated at whoszoo.app/setup.</span>
       </div>
       <div class="control-row">
         <span class="control-icon">🌐</span>
@@ -617,8 +617,8 @@
         <div class="card-desc">Uses the browser's built-in Web Speech Recognition API. Instant — transcription appears as you speak. No API credits used. Accuracy depends on your browser and accent. Best for quick questions and most everyday use. On iOS, Auto always falls back to Whisper because iOS Safari does not support Web Speech API.</div>
       </div>
       <div class="card" style="border-left: 3px solid var(--amber);">
-        <div class="card-title"><span class="card-icon">🎙</span>Whisper — accurate, small cost, slight delay</div>
-        <div class="card-desc">Sends audio to OpenAI's Whisper-1 model via your worker's <code style="font-family:monospace;color:var(--green)">/transcribe</code> endpoint. More accurate than Auto — especially for names, technical terms, and quieter environments. Costs a small fraction of a cent per clip (billed to your OpenAI account). Adds a 1–3 second round-trip while the audio is processed. Requires your OpenAI API key to be configured.</div>
+        <div class="card-title"><span class="card-icon">🎙</span>Whisper — accurate, slight delay</div>
+        <div class="card-desc">Sends audio to Cloudflare's Whisper model via your worker's <code style="font-family:monospace;color:var(--green)">/transcribe</code> endpoint, inside your own Cloudflare account. More accurate than Auto — especially for names, technical terms, and quieter environments. Uses very little of Cloudflare's free daily AI allowance — spoken replies in Asteria or Orion use most of it. If the day's allowance runs out, Whisper input pauses until midnight UTC; switch to Auto to keep talking. Adds a short round-trip while the audio is processed. Requires the Cloudflare AI connection that the setup wizard adds.</div>
       </div>
       <div class="card" style="border-left: 3px solid var(--green);">
         <div class="card-title"><span class="card-icon">🌐</span>Voice Language — Whisper only</div>
