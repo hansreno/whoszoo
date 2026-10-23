@@ -627,7 +627,7 @@
         <div class="card-desc">Utilise l'API Web Speech Recognition intégrée du navigateur. Instantané — la transcription apparaît au fur et à mesure que vous parlez. Aucun crédit API utilisé. La précision dépend de votre navigateur et de votre accent. Idéal pour les questions rapides et la plupart des usages quotidiens. Sur iOS, Auto bascule toujours vers Whisper car iOS Safari ne prend pas en charge la Web Speech API.</div> <!-- needs-review -->
       </div>
       <div class="card" style="border-left: 3px solid var(--amber);">
-        <div class="card-title"><span class="card-icon">🎙</span>Whisper — précis, coût minime, légère latence</div> <!-- needs-review -->
+        <div class="card-title"><span class="card-icon">🎙</span>Whisper — précis, légère latence</div> <!-- needs-review -->
         <div class="card-desc">Envoie l'audio au modèle Whisper de Cloudflare via l'endpoint <code style="font-family:monospace;color:var(--green)">/transcribe</code> de votre worker, dans votre propre compte Cloudflare. Plus précis qu'Auto — surtout pour les noms, les termes techniques et les environnements plus silencieux. Utilise très peu de l'allocation quotidienne gratuite d'IA de Cloudflare — les réponses vocales en Asteria ou Orion en consomment la majeure partie. Si l'allocation du jour est épuisée, la saisie Whisper est suspendue jusqu'à minuit UTC ; passez en Auto pour continuer à parler. Ajoute un court aller-retour pendant le traitement de l'audio. Nécessite la connexion IA de Cloudflare qu'ajoute l'assistant de configuration.</div> <!-- needs-review -->
       </div>
       <div class="card" style="border-left: 3px solid var(--green);">

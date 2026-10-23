@@ -628,7 +628,7 @@
         <div class="card-desc">ब्राउज़र की बिल्ट-इन Web Speech Recognition API इस्तेमाल करता है। तात्कालिक — बोलते समय ट्रांसक्रिप्शन दिखता है। कोई API क्रेडिट नहीं लगते। सटीकता आपके ब्राउज़र और लहज़े पर निर्भर करती है। त्वरित सवालों और अधिकांश रोज़मर्रा के उपयोग के लिए आदर्श। iOS पर Auto हमेशा Whisper पर fallback करता है क्योंकि iOS Safari Web Speech API support नहीं करता।</div> <!-- needs-review -->
       </div>
       <div class="card" style="border-left: 3px solid var(--amber);">
-        <div class="card-title"><span class="card-icon">🎙</span>Whisper — सटीक, न्यूनतम लागत, हल्की देरी</div> <!-- needs-review -->
+        <div class="card-title"><span class="card-icon">🎙</span>Whisper — सटीक, हल्की देरी</div> <!-- needs-review -->
         <div class="card-desc">आपके worker के <code style="font-family:monospace;color:var(--green)">/transcribe</code> endpoint के ज़रिए, आपके अपने Cloudflare अकाउंट के अंदर, Cloudflare के Whisper मॉडल को ऑडियो भेजता है। Auto से अधिक सटीक — खासकर नामों, तकनीकी शब्दों और कम शोर वाले माहौल के लिए। Cloudflare के मुफ़्त दैनिक AI आवंटन का बहुत कम हिस्सा इस्तेमाल करता है — Asteria या Orion में बोले गए जवाब उसका ज़्यादातर हिस्सा इस्तेमाल करते हैं। अगर दिन का आवंटन खत्म हो जाए, तो Whisper इनपुट UTC की आधी रात तक रुक जाता है; बात करते रहने के लिए Auto पर स्विच करें। ऑडियो प्रोसेस होते समय थोड़ा सा राउंड-ट्रिप जुड़ता है। इसके लिए वह Cloudflare AI कनेक्शन ज़रूरी है जो सेटअप विज़ार्ड जोड़ता है।</div> <!-- needs-review -->
       </div>
       <div class="card" style="border-left: 3px solid var(--green);">
