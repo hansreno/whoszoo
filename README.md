@@ -40,8 +40,10 @@ for. Both are legitimate; pick whichever your afternoon is worth.
 
 ## Deploy it yourself
 
-You'll need a Cloudflare account, an Anthropic API key, and an OpenAI API key (used only
-for speech-to-text and text-to-speech — the app works without voice if you skip it).
+You'll need a Cloudflare account and an Anthropic API key. Voice (the Asteria and Orion voices,
+and Whisper speech-to-text) runs on Cloudflare Workers AI through the `[ai]` binding already in
+`wrangler.toml.example` — no extra key, covered by Cloudflare's free daily allowance (about 30
+spoken replies a day). ElevenLabs voices are optional.
 
 ```bash
 git clone https://github.com/hansreno/whoszoo.git
@@ -59,7 +61,6 @@ cp wrangler.toml.example wrangler.toml
 
 # 3. Set secrets
 npx wrangler secret put ANTHROPIC_API_KEY
-npx wrangler secret put OPENAI_API_KEY
 npx wrangler secret put WORKER_KEY   # any long random string; this is your recovery key
 npx wrangler secret put USER_NAME    # your first name, used in the system prompt
 # optional:
