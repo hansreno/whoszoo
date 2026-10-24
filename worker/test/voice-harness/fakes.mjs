@@ -10,6 +10,9 @@ export function installFakes(window, opts) {
     abortSyncOnEnd: true,        // Chrome: abort() → onend synchronously (the PTT code relies on this)
     recorderStopAsyncMs: 10,     // MediaRecorder.stop() → dataavailable + onstop arrive later
     gumDelayMs: 0,               // getUserMedia resolve delay
+    gumPlan: [],                 // per-call [{ delayMs, reject }]; empty → { delayMs: gumDelayMs }
+    latencyMs: {},               // path -> response delay (default 200 ms)
+    decodeDelayMs: 0,            // decodeAudioData resolve delay
     audioContextState: "running",
     speechSynthesis: device === "iphone" ? "noop" : "plays", // iOS ignores speak() outside a gesture
     transcript: "Remind me about Lily",
@@ -72,11 +75,17 @@ export function installFakes(window, opts) {
     value: {
       getUserMedia() {
         rec("getUserMedia");
-        return new Promise((res) => clock.setTimeout(() => {
+        const step = cfg.gumPlan.length ? cfg.gumPlan.shift() : { delayMs: cfg.gumDelayMs };
+        return new Promise((res, rej) => clock.setTimeout(() => {
+          if (step.reject) {
+            rec("getUserMedia.rejected");
+            const e = new Error("Permission denied"); e.name = "NotAllowedError";
+            return rej(e);
+          }
           const s = makeStream();
           rec("getUserMedia.resolved", { stream: s.id });
           res(s);
-        }, cfg.gumDelayMs));
+        }, step.delayMs || 0));
       },
     },
   });
@@ -124,7 +133,10 @@ export function installFakes(window, opts) {
       const p = { setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} };
       return { gain: p, connect(n) { return n; } };
     }
-    decodeAudioData() { return Promise.resolve({ duration: 1.5 }); }
+    decodeAudioData() {
+      if (!cfg.decodeDelayMs) return Promise.resolve({ duration: 1.5 });
+      return new Promise((r) => clock.setTimeout(() => r({ duration: 1.5 }), cfg.decodeDelayMs));
+    }
     createBufferSource() {
       const ctx = this;
       return {
@@ -222,7 +234,7 @@ export function installFakes(window, opts) {
         if (signal.aborted) return rej(abortErr());
         signal.addEventListener("abort", () => { rec("fetch.aborted", { path }); rej(abortErr()); });
       }
-      const later = (fn) => clock.setTimeout(fn, 200);
+      const later = (fn) => clock.setTimeout(fn, cfg.latencyMs[path] ?? 200);
       if (mode === "hang") return;
       if (mode === "error") return later(() => rej(new TypeError("Failed to fetch")));
       if (mode === "429") return later(() => res(respond(429, { ok: false, error: "voice_allowance_exhausted" })));
@@ -233,6 +245,9 @@ export function installFakes(window, opts) {
         case "/speak": return later(() => res(respond(200, new ArrayBuffer(2000), "audio/mpeg")));
         case "/chat": return later(() => res(chatStream(cfg.reply, signal)));
         case "/getMemoryFile": return later(() => res(respond(200, "## Lily\n- Daughter of Maria\n", "text/plain")));
+        case "/patchMemoryFile":
+        case "/insertSection":
+        case "/replaceSection": return later(() => res(respond(200, { ok: true, hash: "h1" })));
         default:
           unrouted.push(path); rec("fetch.unrouted", { path });
           return later(() => rej(new Error(`unrouted request: ${path}`)));

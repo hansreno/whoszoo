@@ -385,6 +385,35 @@ test("a journal recording that cannot be transcribed is kept for the user, not d
   assert.match(hw.slice(hw.lastIndexOf("catch (err)")), /keepFailedRecording\(blob\)/);
 });
 
+test("lockApp ends the voice turn: every token replaced and the transcription aborted", () => {
+  const body = appCode.slice(appCode.indexOf("function lockApp()"), appCode.indexOf("function lockApp()") + 2500);
+  for (const tok of ["currentTranscription", "convRecognizerToken", "pttToken", "speakToken", "whisperStartToken"]) {
+    assert.match(body, new RegExp(String.raw`${tok} = \{\}`), tok);
+  }
+  assert.match(body, /whisperTranscribeAbort\.abort\(\)/);
+});
+
+test("startWhisperPTT owns its mic request through whisperStartToken", () => {
+  assert.match(appCode, /const myToken = whisperStartToken = \{\};/);
+  for (const fn of ["function hardStopConv()", "function exitConvMode()"]) {
+    const body = appCode.slice(appCode.indexOf(fn), appCode.indexOf(fn) + 1500);
+    assert.match(body, /whisperStartToken = \{\}/, fn);
+  }
+});
+
+test("speakText owns its reply through speakToken", () => {
+  assert.match(appCode, /const myToken = speakToken = \{\};/);
+  for (const fn of ["function hardStopConv()", "function exitConvMode()"]) {
+    const body = appCode.slice(appCode.indexOf(fn), appCode.indexOf(fn) + 1500);
+    assert.match(body, /speakToken = \{\}/, fn);
+  }
+});
+
+test("write-proposal paths resume listening through the mode-aware helper", () => {
+  assert.match(appCode, /function resumeConvListening\(\)/);
+  assert.doesNotMatch(appCode, /if \(convMode\) convListen\(\);/);
+});
+
 test("stale-callback guards are session tokens, not generation counters (voice stage 1)", () => {
   for (const id of ["convListenGen", "pttGen", "whisperResultGen"]) {
     assert.doesNotMatch(appCode, new RegExp(String.raw`\b${id}\b`), id);

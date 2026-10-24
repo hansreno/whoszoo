@@ -1,0 +1,329 @@
+[
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap to chat · Hold to journal"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "transcript",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "toast",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "overlay",
+  "v": "hidden"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "mute",
+  "v": "live"
+ },
+ {
+  "t": 500,
+  "k": "pointerdown",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "audioContext.new",
+  "ctx": 1
+ },
+ {
+  "t": 500,
+  "k": "pointerdown.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "touchstart",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "pointerup",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "browserVoice.cancel"
+ },
+ {
+  "t": 600,
+  "k": "audioContext.new",
+  "ctx": 2
+ },
+ {
+  "t": 600,
+  "k": "getUserMedia"
+ },
+ {
+  "t": 600,
+  "k": "pointerup.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening"
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "label",
+  "v": "Starting..."
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "overlay",
+  "v": "open"
+ },
+ {
+  "t": 600,
+  "k": "touchend",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "click",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "getUserMedia.resolved",
+  "stream": 1
+ },
+ {
+  "t": 650,
+  "k": "recorder.new",
+  "stream": 1
+ },
+ {
+  "t": 650,
+  "k": "recorder.start"
+ },
+ {
+  "t": 650,
+  "k": "audioContext.new",
+  "ctx": 3
+ },
+ {
+  "t": 650,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
+ },
+ {
+  "t": 800,
+  "k": "audioContext.close",
+  "ctx": 2
+ },
+ {
+  "t": 950,
+  "k": "level",
+  "v": 0.05
+ },
+ {
+  "t": 2450,
+  "k": "level",
+  "v": 0
+ },
+ {
+  "t": 3450,
+  "k": "audioContext.close",
+  "ctx": 3
+ },
+ {
+  "t": 3450,
+  "k": "recorder.stop"
+ },
+ {
+  "t": 3500,
+  "k": "fetch",
+  "path": "/transcribe",
+  "mode": "ok"
+ },
+ {
+  "t": 3500,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb thinking"
+ },
+ {
+  "t": 3500,
+  "k": "ui",
+  "f": "label",
+  "v": "Thinking..."
+ },
+ {
+  "t": 3500,
+  "k": "ui",
+  "f": "transcript",
+  "v": "Transcribing…"
+ },
+ {
+  "t": 3700,
+  "k": "fetch",
+  "path": "/chat",
+  "mode": "ok"
+ },
+ {
+  "t": 3700,
+  "k": "ui",
+  "f": "transcript",
+  "v": "Remind me about Lily"
+ },
+ {
+  "t": 4300,
+  "k": "fetch",
+  "path": "/getMemoryFile",
+  "mode": "ok"
+ },
+ {
+  "t": 4300,
+  "k": "fetch",
+  "path": "/speak",
+  "mode": "ok"
+ },
+ {
+  "t": 4300,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb speaking"
+ },
+ {
+  "t": 4300,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap orb to interrupt"
+ },
+ {
+  "t": 4300,
+  "k": "ui",
+  "f": "overlay",
+  "v": "minimized"
+ },
+ {
+  "t": 4500,
+  "k": "tts.play",
+  "ctx": 1
+ },
+ {
+  "t": 6000,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb idle"
+ },
+ {
+  "t": 6000,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap to chat · Hold to journal"
+ },
+ {
+  "t": 8450,
+  "k": "click",
+  "el": "preview-confirm"
+ },
+ {
+  "t": 8450,
+  "k": "ui",
+  "f": "overlay",
+  "v": "open"
+ },
+ {
+  "t": 8500,
+  "k": "fetch",
+  "path": "/getMemoryFile",
+  "mode": "ok"
+ },
+ {
+  "t": 8700,
+  "k": "fetch",
+  "path": "/insertSection",
+  "mode": "ok"
+ },
+ {
+  "t": 8900,
+  "k": "fetch",
+  "path": "/getMemoryFile",
+  "mode": "ok"
+ },
+ {
+  "t": 9100,
+  "k": "fetch",
+  "path": "/speak",
+  "mode": "ok"
+ },
+ {
+  "t": 9100,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb speaking"
+ },
+ {
+  "t": 9100,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap orb to interrupt"
+ },
+ {
+  "t": 9300,
+  "k": "tts.play",
+  "ctx": 1
+ },
+ {
+  "t": 10800,
+  "k": "browserVoice.cancel"
+ },
+ {
+  "t": 10800,
+  "k": "recorder.new",
+  "stream": 1
+ },
+ {
+  "t": 10800,
+  "k": "recorder.start"
+ },
+ {
+  "t": 10800,
+  "k": "audioContext.new",
+  "ctx": 4
+ },
+ {
+  "t": 10800,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening"
+ },
+ {
+  "t": 10800,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
+ },
+ {
+  "t": 10800,
+  "k": "ui",
+  "f": "transcript",
+  "v": ""
+ }
+]

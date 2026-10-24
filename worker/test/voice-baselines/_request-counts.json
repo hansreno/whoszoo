@@ -85,5 +85,36 @@
   },
   "journal-auto-ptt-echo-guard": {},
   "voice-logic-missing-app-still-starts": {},
-  "journal-auto-ptt-repress-aborts-live-recognizer": {}
+  "journal-auto-ptt-repress-aborts-live-recognizer": {},
+  "stale-speak-decode-hard-stop-retap": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "whisper-write-proposal-cancelled": {
+    "/chat": 1,
+    "/getMemoryFile": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "slow-mic-rejected-after-retap": {},
+  "whisper-write-proposal-saved": {
+    "/chat": 1,
+    "/getMemoryFile": 3,
+    "/insertSection": 1,
+    "/speak": 2,
+    "/transcribe": 1
+  },
+  "auto-lock-during-slow-mic": {},
+  "auto-lock-during-transcribe": {
+    "/transcribe": 1
+  },
+  "iphone-exit-during-slow-mic": {},
+  "whisper-cancel-proposal-while-ready-speech": {
+    "/chat": 1,
+    "/getMemoryFile": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "whisper-hard-stop-during-starting": {}
 }

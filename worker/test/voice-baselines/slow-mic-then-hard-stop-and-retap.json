@@ -228,23 +228,8 @@
  },
  {
   "t": 2100,
-  "k": "recorder.new",
+  "k": "track.stop",
   "stream": 1
- },
- {
-  "t": 2100,
-  "k": "recorder.start"
- },
- {
-  "t": 2100,
-  "k": "audioContext.new",
-  "ctx": 3
- },
- {
-  "t": 2100,
-  "k": "ui",
-  "f": "label",
-  "v": "Listening..."
  },
  {
   "t": 2300,
@@ -253,16 +238,22 @@
  },
  {
   "t": 2300,
-  "k": "track.stop",
-  "stream": 1
- },
- {
-  "t": 2300,
   "k": "recorder.new",
   "stream": 2
  },
  {
   "t": 2300,
   "k": "recorder.start"
+ },
+ {
+  "t": 2300,
+  "k": "audioContext.new",
+  "ctx": 3
+ },
+ {
+  "t": 2300,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
  }
 ]

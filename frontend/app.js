@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.1
-const APP_VERSION = "1.9.1";
+// WhosZoo — Frontend App v1.9.2
+const APP_VERSION = "1.9.2";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -68,6 +68,8 @@ let journalDictating = false; // true when in a multi-turn journal dictation in 
 let noSpeechCount = 0;        // consecutive no-speech events while journalDictating
 let convDoSend = null;        // set by convListen, called by orb tap in captured state
 let convRecognizerToken = null; // new object per convListen() and at each invalidation site; guards stale onend/onerror
+let speakToken = {};             // new object per speakText(); replaced on hard stop, exit and lock so a stale reply does nothing
+let whisperStartToken = {};      // new object per startWhisperPTT(); replaced on hard stop, exit and lock
 const cmdHistory = [];        // terminal-style input history
 let cmdHistoryIdx = -1;       // current position walking history; -1 = live input
 let cmdHistoryDraft = "";     // saves in-progress text when walking back
@@ -833,6 +835,14 @@ function lockApp() {
   // content isn't read aloud and the mic isn't live over the lock screen.
   if (convChatAbort)  { convChatAbort.abort();  convChatAbort  = null; }
   if (convSpeakAbort) { convSpeakAbort.abort(); convSpeakAbort = null; }
+  if (whisperTranscribeAbort) { try { whisperTranscribeAbort.abort(); } catch {} whisperTranscribeAbort = null; }
+  // End the voice turn: anything still awaiting (a transcription, a mic grant,
+  // a reply, a recogniser callback) sees a stale token and does nothing.
+  currentTranscription = {};
+  convRecognizerToken = {};
+  pttToken = {};
+  speakToken = {};
+  whisperStartToken = {};
   if (convMode) {
     stopConvAudio();
     stopThinkingSound();
@@ -4727,7 +4737,7 @@ previewConfirm.addEventListener("click", async () => {
       return;
     }
     writeQueueTotal = 0;
-    if (convMode) convListen();
+    if (convMode) resumeConvListening();
   };
 
   pendingWrite = collectEdits(pendingWrite);
@@ -4946,7 +4956,7 @@ previewReject.addEventListener("click", () => {
   appendMessage("system", hadMore ? "Cancelled — nothing saved. Remaining proposed updates also discarded." : "Cancelled — nothing saved.");
   if (wasInsert) messages.push({ role: "user", content: "The record was not saved. If I ask you to re-propose it, start fresh with insertSection — do not patch." });
   messagesEl.scrollTop = messagesEl.scrollHeight;
-  if (convMode) convListen();
+  if (convMode) resumeConvListening();
 });
 
 previewOverlay.addEventListener("click", e => {
@@ -4959,7 +4969,7 @@ previewOverlay.addEventListener("click", e => {
     writeQueueTotal = 0;
     appendMessage("system", hadMore ? "Cancelled — nothing saved. Remaining proposed updates also discarded." : "Cancelled — nothing saved.");
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    if (convMode) convListen();
+    if (convMode) resumeConvListening();
   }
 });
 
@@ -7314,6 +7324,8 @@ function exitConvMode() {
   if (convChatAbort)  { convChatAbort.abort();  convChatAbort  = null; }
   if (convSpeakAbort) { convSpeakAbort.abort(); convSpeakAbort = null; }
   currentTranscription = {};
+  speakToken = {};
+  whisperStartToken = {};
   // Cancel in-flight /transcribe fetch so token billing stops on exit.
   if (whisperTranscribeAbort) {
     try { whisperTranscribeAbort.abort(); } catch {}
@@ -7472,6 +7484,8 @@ function hardStopConv() {
     whisperTranscribeAbort = null;
   }
   currentTranscription = {};
+  speakToken = {};
+  whisperStartToken = {};
   convRecognizerToken = {};  // invalidate any pending onend/onerror so recognition doesn't auto-restart
   if (orbPressTimer)   { clearTimeout(orbPressTimer);   orbPressTimer   = null; }
   if (orbJournalTimer) { clearTimeout(orbJournalTimer); orbJournalTimer = null; }
@@ -7763,6 +7777,15 @@ function fireStillThere() {
   sendMessage("still there?", true);
 }
 
+// Listen again in whichever input mode is active. The write-proposal paths
+// used to call convListen() directly, which started the Auto recogniser even
+// in Whisper mode (and on iPhone, which is always Whisper).
+function resumeConvListening() {
+  speakToken = {}; // a new listen claims the turn: a reply still finishing must not set idle over it
+  if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
+  else convListen();
+}
+
 function convListen() {
   if (!convMode) return;
   stopConvRecognition();
@@ -7852,7 +7875,7 @@ function convListen() {
     clearAutoSend();
     convTranscriptEl.textContent = "";
     convLabel.textContent = t("conv.label.discarded");
-    setTimeout(() => { if (convMode) convListen(); }, 800);
+    setTimeout(() => { if (convMode) resumeConvListening(); }, 800);
   };
 
   convRecognition.onend = () => {
@@ -8248,6 +8271,7 @@ function restartWhisperRecorder() {
 }
 
 async function startWhisperPTT() {
+  const myToken = whisperStartToken = {};
   try {
     clearTimeout(_streamIdleTimer); _streamIdleTimer = null;
     stopThinkingSound(); // stops oscillators; AudioContext closed separately in exitConvMode
@@ -8280,6 +8304,19 @@ async function startWhisperPTT() {
       convLabel.textContent = t("conv.label.starting");
       convLabel.classList.add("conv-label--starting");
       const stream = await streamPromise;
+      if (whisperStartToken !== myToken) {
+        // A hard stop, exit, lock or newer listen replaced us while the mic was
+        // being granted: release this grant and leave the state to the newer owner.
+        // On iOS the pre-acquire .then() may already have stored it in whisperStream;
+        // outside conversation mode nobody will reuse it, so release it there too.
+        if (stream !== whisperStream || !convMode) {
+          stream.getTracks().forEach(t => t.stop());
+          if (whisperStream === stream) whisperStream = null;
+        }
+        // No newer listen is starting (hard stop, exit or lock): end the Starting pulse.
+        if (!orbPttActive) convLabel.classList.remove("conv-label--starting");
+        return;
+      }
       convLabel.classList.remove("conv-label--starting");
       convLabel.textContent = t("conv.label.listening");
       if (!orbPttActive) {
@@ -8312,6 +8349,7 @@ async function startWhisperPTT() {
     stream.getTracks().forEach(t => { t.enabled = wantEnabled; });
     if (!journalDictating) startSilenceDetection(stream);
   } catch {
+    if (whisperStartToken !== myToken) return; // stale call: a newer one owns state, label and toasts
     orbPttActive = false;
     setConvState(journalDictating ? "paused" : "idle");
     showToast(t("toast.mic-denied"));
@@ -8586,6 +8624,13 @@ function speakWithBrowser(text) {
 }
 
 async function speakText(text, autoLoop = false) {
+  const myToken = speakToken = {};
+  const mine = () => speakToken === myToken;
+  // After speaking: listen again, or go idle — only if this reply still owns the turn.
+  const afterSpeak = () => {
+    if (!mine() || !convMode || convState === "paused") return;
+    if (autoLoop) resumeConvListening(); else setConvState("idle");
+  };
   if (convMode) setConvState("speaking");
   // Switch iOS audio session to playback so TTS plays through the speaker,
   // not the earpiece. The mic was released in stopWhisperRecorder before we get here.
@@ -8594,6 +8639,8 @@ async function speakText(text, autoLoop = false) {
   }
   const spokenText = stripMdForSpeech(text);
 
+  // The previous call (if any) no longer owns the turn (speakToken was just
+  // replaced): its pending promise resolves via its watchdog and then does nothing.
   // Defensive: kill any prior speakText still playing or fetching.
   if (convSpeakAbort) { try { convSpeakAbort.abort(); } catch {} convSpeakAbort = null; }
   if (convAudioSource) {
@@ -8623,11 +8670,8 @@ async function speakText(text, autoLoop = false) {
       // watchdog (up to 60 s) ended it and the orb sat on "speaking" for each
       // reply. On iPhone, skip it for the cases that now happen routinely.
       const skipBrowserVoice = isIOS() && (browserOnly || code === "voice_allowance_exhausted" || code === "ai_not_configured");
-      if (!skipBrowserVoice) await speakWithBrowser(spokenText);
-      if (convMode && autoLoop && convState !== "paused") {
-        if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
-        else { convListen(); }
-      } else if (convMode && convState !== "paused") { setConvState("idle"); }
+      if (!skipBrowserVoice && mine()) await speakWithBrowser(spokenText);
+      afterSpeak();
       return;
     }
     // Route TTS through the session AudioContext (created in enterConvMode inside a
@@ -8640,10 +8684,13 @@ async function speakText(text, autoLoop = false) {
           thinkingAudioCtx.resume().catch(() => {}),
           new Promise(r => setTimeout(r, 1500))
         ]);
+        if (!mine()) return;
       }
       if (thinkingAudioCtx.state === 'running') {
         const arrayBuffer = await res.arrayBuffer();
+        if (!mine()) return;
         const audioBuffer = await thinkingAudioCtx.decodeAudioData(arrayBuffer);
+        if (!mine()) return;
         await new Promise(resolve => {
           const src = thinkingAudioCtx.createBufferSource();
           src.buffer = audioBuffer;
@@ -8665,10 +8712,11 @@ async function speakText(text, autoLoop = false) {
       } else {
         // Context won't resume (e.g. interrupted state) — fall through to Web Speech
         await res.blob(); // consume body
-        await speakWithBrowser(spokenText);
+        if (mine()) await speakWithBrowser(spokenText);
       }
     } else {
       const audioBlob = await res.blob();
+      if (!mine()) return;
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       convAudio = audio;
@@ -8682,24 +8730,14 @@ async function speakText(text, autoLoop = false) {
     }
 
     // After speaking: resume listening (mute state handled inside each listener — mic gate only)
-    if (convMode && autoLoop && convState !== "paused") {
-      if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
-      else { convListen(); }
-    } else if (convMode && convState !== "paused") {
-      setConvState("idle");
-    }
+    afterSpeak();
     // If convState is "paused" (user hard-stopped), leave it as-is
   } catch (err) {
     convSpeakAbort = null;
     if (err.name === "AbortError") return;
-    await speakWithBrowser(spokenText);
+    if (mine()) await speakWithBrowser(spokenText);
     // In autoLoop conv mode, restart listening rather than dying silently
-    if (convMode && autoLoop && convState !== "paused") {
-      if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
-      else { convListen(); }
-    } else if (convMode && convState !== "paused") {
-      setConvState("idle");
-    }
+    afterSpeak();
   }
 }
 

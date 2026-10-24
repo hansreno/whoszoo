@@ -129,6 +129,9 @@ export async function loadVoiceApp({ device = "android", inputMode = "whisper", 
       await advance(STEP_MS);
     },
     async click(id) { ctl.rec("click", { el: id }); $(id).click(); observe(); await advance(STEP_MS); },
+    // Like click(), plus a click.end marker: anything between the two ran
+    // synchronously inside the click (iOS needs getUserMedia there).
+    async clickMarked(id) { ctl.rec("click", { el: id }); $(id).click(); ctl.rec("click.end", { el: id }); observe(); await advance(STEP_MS); },
     async say(ms, rms = 0.05) { ctl.setLevel(rms); await advance(ms); ctl.setLevel(0); },
     recognizer: (n) => ctl.recognizers[(n || ctl.recognizers.length) - 1],
     async setVisibility(v) { ctl.setVisibility(v); observe(); await advance(STEP_MS); },

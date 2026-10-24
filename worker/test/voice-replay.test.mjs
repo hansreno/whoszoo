@@ -85,6 +85,7 @@ scenario("slow-mic-then-hard-stop-and-retap", { ...W, fakes: { gumDelayMs: 1500 
   await app.press("conv-orb");           // hard stop
   await app.press("conv-orb");           // listen again while the first getUserMedia is pending
   await app.advance(3000);               // pins today's recorder count (race noted for stage 2)
+  assert.equal(app.trace.filter(e => e.k === "recorder.new").length, 1, "one recorder: the stale mic grant must not start a second");
 });
 
 scenario("auto-turn-two-finals", A, async (app) => {
@@ -218,4 +219,84 @@ scenario("voice-logic-missing-app-still-starts", { ...W, omitScripts: ["voice-lo
   await app.press("conv-btn"); await app.advance(500);
   assert.equal(app.w.document.getElementById("conv-overlay").classList.contains("hidden"), true, "voice stays closed");
   assert.equal(app.counts["/transcribe"] || 0, 0);
+});
+
+// ---- Stage 2, part A: turn ownership (recorded on v1.9.1 first) ----
+const PROPOSAL = { reply: "Saving that. <memory-write>{\"action\":\"append\",\"file\":\"people.md\",\"section\":\"Lily\",\"content\":\"- Likes horses\"}</memory-write>" };
+
+scenario("stale-speak-decode-hard-stop-retap", { ...W, fakes: { decodeDelayMs: 800 } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await until(app, e => e.k === "fetch" && e.path === "/speak");
+  await app.advance(300);                // /speak answered, decode in progress
+  await app.press("conv-orb");           // hard stop
+  await app.press("conv-orb");           // listen again before the old decode finishes
+  await app.advance(4000);
+  const afterRetap = app.trace.slice(app.trace.findLastIndex(e => e.k === "pointerdown" && e.el === "conv-orb"));
+  assert.equal(afterRetap.filter(e => e.k === "tts.play").length, 0, "the stale reply must not start playing after the re-tap");
+  assert.equal(afterRetap.filter(e => e.k === "recorder.new").length, 1, "exactly one recorder for the new turn");
+});
+
+scenario("slow-mic-rejected-after-retap", { ...W, fakes: { gumPlan: [{ delayMs: 1500, reject: true }, { delayMs: 100 }] } }, async (app) => {
+  await app.press("conv-btn");           // first mic request, slow, eventually refused
+  await app.press("conv-orb");           // hard stop
+  await app.press("conv-orb");           // re-tap: granted quickly; the stale refusal lands later
+  await app.advance(3000);
+  const refusedAt = app.trace.find(e => e.k === "getUserMedia.rejected").t;
+  const after = app.trace.filter(e => e.t >= refusedAt && e.k === "ui");
+  assert.equal(after.filter(e => e.f === "toast" && /denied/i.test(e.v)).length, 0, "a stale refusal must not show a denied toast over the live turn");
+  assert.equal(after.filter(e => e.f === "label" && !/Listening/.test(e.v)).length, 0, "a stale refusal must not reset the label of the live turn");
+});
+
+scenario("auto-lock-during-slow-mic", { ...W, storage: { whoszoo_timeout: "1" }, fakes: { gumPlan: [{ delayMs: 130000 }] } }, async (app) => {
+  await app.press("conv-btn");
+  await app.advance(200000);             // the 1-minute lock fires at ~120 s; the mic grant arrives at ~130 s
+  assert.equal(app.trace.filter(e => e.k === "recorder.new").length, 0, "no recorder may start behind the lock screen");
+  const granted = app.trace.find(e => e.k === "getUserMedia.resolved");
+  assert.ok(!granted || app.trace.some(e => e.k === "track.stop" && e.t >= granted.t), "a mic granted after the lock is released");
+});
+
+scenario("auto-lock-during-transcribe", { ...W, storage: { whoszoo_timeout: "1" }, fakes: { latencyMs: { "/transcribe": 130000 } } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await app.advance(200000);             // the 1-minute lock fires at ~120 s; the transcript arrives at ~130 s
+  assert.equal(app.counts["/chat"] || 0, 0, "a transcript arriving after the lock must not reach Claude");
+  assert.ok(app.trace.some(e => e.k === "fetch.aborted" && e.path === "/transcribe"), "the lock aborts the transcription");
+});
+
+const PROPOSAL_INSERT = { reply: "Saving that. <memory-write>{\"action\":\"insertSection\",\"filename\":\"people.md\",\"section\":\"## Mia\\n- Friend from school\"}</memory-write>" };
+
+scenario("whisper-write-proposal-saved", { ...W, fakes: PROPOSAL_INSERT }, async (app) => {
+  await turn(app, 6000);
+  await app.click("preview-confirm"); await app.advance(3000);
+  assert.equal(app.trace.filter(e => e.k === "recognizer.new").length, 0, "Whisper mode must never start a SpeechRecognition");
+  assert.ok(app.trace.filter(e => e.k === "recorder.new").length >= 2, "listening resumes with a recorder");
+});
+
+scenario("whisper-write-proposal-cancelled", { ...W, fakes: PROPOSAL }, async (app) => {
+  await turn(app, 6000);
+  await app.click("preview-reject"); await app.advance(3000);
+  assert.equal(app.trace.filter(e => e.k === "recognizer.new").length, 0, "Whisper mode must never start a SpeechRecognition");
+  assert.ok(app.trace.filter(e => e.k === "recorder.new").length >= 2, "listening resumes with a recorder");
+});
+
+// ---- Milestone A final-review fixes ----
+scenario("iphone-exit-during-slow-mic", { ...IPH, fakes: { gumDelayMs: 1500 } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(200);
+  await app.click("conv-exit"); await app.advance(5000);
+  const granted = app.trace.find(e => e.k === "getUserMedia.resolved");
+  assert.ok(granted, "the slow grant arrives after Exit");
+  assert.ok(app.trace.some(e => e.k === "track.stop" && e.t >= granted.t), "a mic granted after Exit is released (iOS mic indicator goes off)");
+});
+
+scenario("whisper-cancel-proposal-while-ready-speech", { ...W, fakes: PROPOSAL_INSERT }, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await until(app, e => e.k === "tts.play");
+  await app.click("preview-reject"); await app.advance(3000);
+  const orbs = app.trace.filter(e => e.k === "ui" && e.f === "orb");
+  assert.match(orbs[orbs.length - 1].v, /listening/, "after Cancel the app keeps listening; a finished old reply must not flip it to idle");
+});
+
+scenario("whisper-hard-stop-during-starting", { ...W, fakes: { gumDelayMs: 1500 } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(200);
+  await app.press("conv-orb"); await app.advance(3000);
+  assert.equal(app.w.document.getElementById("conv-label").classList.contains("conv-label--starting"), false, "the Starting pulse ends once the stale grant is dropped");
 });

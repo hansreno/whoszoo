@@ -22,3 +22,49 @@ test("tapping the conversation button opens conversation mode and asks for the m
     assert.deepEqual(app.errors, []);
   } finally { app.close(); }
 });
+
+test("fakes: gumPlan entries are consumed per getUserMedia call and can reject", async () => {
+  const app = await loadVoiceApp({ device: "android", inputMode: "whisper", fakes: { gumPlan: [{ delayMs: 100 }, { delayMs: 50, reject: true }] } });
+  try {
+    const md = app.w.navigator.mediaDevices;
+    const first = md.getUserMedia({ audio: true });
+    const second = md.getUserMedia({ audio: true }).then(() => "resolved", (e) => e.name);
+    await app.advance(200);
+    assert.ok(await first);
+    assert.equal(await second, "NotAllowedError");
+    assert.ok(app.trace.some(e => e.k === "getUserMedia.rejected"));
+  } finally { app.close(); }
+});
+
+test("fakes: latencyMs delays a routed request", async () => {
+  const app = await loadVoiceApp({ device: "android", inputMode: "whisper", fakes: { latencyMs: { "/transcribe": 1000 } } });
+  try {
+    let done = false;
+    app.w.fetch("https://example.test/transcribe", { method: "POST" }).then(() => { done = true; });
+    await app.advance(600);
+    assert.equal(done, false, "still pending at 600 ms");
+    await app.advance(500);
+    assert.equal(done, true, "resolved by 1100 ms");
+  } finally { app.close(); }
+});
+
+test("fakes: write endpoints answer ok", async () => {
+  const app = await loadVoiceApp({ device: "android", inputMode: "whisper" });
+  try {
+    let res = null;
+    app.w.fetch("https://example.test/patchMemoryFile", { method: "POST" }).then((r) => { res = r; }, () => {});
+    await app.advance(400);
+    assert.deepEqual(app.unrouted, []);
+    assert.ok(res && res.ok);
+  } finally { app.close(); }
+});
+
+test("clickMarked records click.end after everything the click ran synchronously", async () => {
+  const app = await loadVoiceApp({ device: "android", inputMode: "whisper" });
+  try {
+    await app.clickMarked("conv-btn");
+    const i = app.trace.findIndex(e => e.k === "click");
+    const j = app.trace.findIndex(e => e.k === "click.end");
+    assert.ok(i >= 0 && j > i);
+  } finally { app.close(); }
+});
