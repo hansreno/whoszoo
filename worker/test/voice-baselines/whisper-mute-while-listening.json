@@ -173,6 +173,18 @@
  {
   "t": 1750,
   "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening muted"
+ },
+ {
+  "t": 1750,
+  "k": "ui",
+  "f": "label",
+  "v": "Muted — tap 🎤 to listen"
+ },
+ {
+  "t": 1750,
+  "k": "ui",
   "f": "mute",
   "v": "muted"
  },
@@ -199,6 +211,18 @@
  {
   "t": 3800,
   "k": "recorder.start"
+ },
+ {
+  "t": 3800,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening"
+ },
+ {
+  "t": 3800,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
  },
  {
   "t": 3800,

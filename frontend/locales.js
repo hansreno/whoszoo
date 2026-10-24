@@ -361,6 +361,8 @@ const LOCALES = {
     "conv.label.chunks-ready":    "Hold for more · Tap chunk to select · Tap again to edit",
     "conv.label.paused":          "Tap orb to chat  •  Hold to journal",
     "conv.label.muted":           "Muted  •  ↺ to discard",
+    "conv.label.muted-listening":  "Muted — tap 🎤 to listen",
+    "conv.transcript.muted-not-sent": "Muted — not sent",
     "conv.label.captured":        "Tap orb to send  •  ↺ discard",
     "conv.label.discarded":       "Discarded",
     "conv.exit-msg-default":      "Exit journal? Your dictation will be lost.",
@@ -765,6 +767,8 @@ const LOCALES = {
     "conv.label.chunks-ready":    "Mantén para más · Toca fragmento para seleccionar · Toca de nuevo para editar", // needs-review
     "conv.label.paused":          "Toca el orbe para hablar  •  Mantén para diario", // needs-review
     "conv.label.muted":           "Silenciado  •  ↺ para descartar", // needs-review
+    "conv.label.muted-listening":  "Silenciado: toca 🎤 para escuchar", // needs-review
+    "conv.transcript.muted-not-sent": "Silenciado: no se envió", // needs-review
     "conv.label.captured":        "Toca el orbe para enviar  •  ↺ descartar", // needs-review
     "conv.label.discarded":       "Descartado", // needs-review
     "conv.exit-msg-default":      "¿Salir del diario? Se perderá tu dictado.", // needs-review
@@ -1169,6 +1173,8 @@ const LOCALES = {
     "conv.label.chunks-ready":    "Maintenir pour plus · Toucher un fragment · Retoucher pour modifier", // needs-review
     "conv.label.paused":          "Appuyer sur l'orbe pour parler  •  Maintenir pour journal", // needs-review
     "conv.label.muted":           "Muet  •  ↺ pour ignorer", // needs-review
+    "conv.label.muted-listening":  "Micro coupé — touchez 🎤 pour écouter", // needs-review
+    "conv.transcript.muted-not-sent": "Micro coupé — non envoyé", // needs-review
     "conv.label.captured":        "Appuyer sur l'orbe pour envoyer  •  ↺ ignorer", // needs-review
     "conv.label.discarded":       "Ignoré", // needs-review
     "conv.exit-msg-default":      "Quitter le journal ? Votre dictée sera perdue.", // needs-review
@@ -1573,6 +1579,8 @@ const LOCALES = {
     "conv.label.chunks-ready":    "और के लिए दबाएँ · हिस्सा चुनने के लिए टैप · संपादन के लिए फिर टैप", // needs-review
     "conv.label.paused":          "बात के लिए ऑर्ब टैप करें  •  जर्नल के लिए दबाए रखें", // needs-review
     "conv.label.muted":           "म्यूट  •  ↺ हटाने के लिए", // needs-review
+    "conv.label.muted-listening":  "म्यूट — सुनने के लिए 🎤 दबाएँ", // needs-review
+    "conv.transcript.muted-not-sent": "म्यूट — भेजा नहीं गया", // needs-review
     "conv.label.captured":        "भेजने के लिए ऑर्ब टैप करें  •  ↺ हटाएँ", // needs-review
     "conv.label.discarded":       "हटाया गया", // needs-review
     "conv.exit-msg-default":      "जर्नल छोड़ें? आपकी डिक्टेशन खो जाएगी।", // needs-review

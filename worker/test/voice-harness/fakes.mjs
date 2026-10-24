@@ -118,8 +118,9 @@ export function installFakes(window, opts) {
     get currentTime() { return (clock.now() - t0) / 1000; }
     resume() { rec("audioContext.resume", { ctx: this.id }); if (this.state !== "closed") this.state = "running"; return Promise.resolve(); }
     close() { rec("audioContext.close", { ctx: this.id }); this.state = "closed"; return Promise.resolve(); }
-    createAnalyser() { return { fftSize: 1024, getFloatTimeDomainData(buf) { buf.fill(level); } }; }
-    createMediaStreamSource() { return { connect() {} }; }
+    // A disabled or stopped track delivers silence, as in a real browser.
+    createAnalyser() { return { fftSize: 1024, _stream: null, getFloatTimeDomainData(buf) { const tr = this._stream && this._stream.getTracks()[0]; buf.fill(tr && (!tr.enabled || tr.readyState !== "live") ? 0 : level); } }; }
+    createMediaStreamSource(stream) { return { connect(node) { if (node) node._stream = stream; return node; } }; }
     createOscillator() {
       // A real oscillator fires onended at its stop() time; the mic-on chime
       // closes its short-lived AudioContext from there.

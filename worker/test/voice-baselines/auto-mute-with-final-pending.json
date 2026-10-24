@@ -116,6 +116,29 @@
  },
  {
   "t": 950,
+  "k": "recognizer.stop",
+  "r": 1
+ },
+ {
+  "t": 950,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening muted"
+ },
+ {
+  "t": 950,
+  "k": "ui",
+  "f": "label",
+  "v": "Muted — tap 🎤 to listen"
+ },
+ {
+  "t": 950,
+  "k": "ui",
+  "f": "transcript",
+  "v": "Muted — not sent"
+ },
+ {
+  "t": 950,
   "k": "ui",
   "f": "mute",
   "v": "muted"

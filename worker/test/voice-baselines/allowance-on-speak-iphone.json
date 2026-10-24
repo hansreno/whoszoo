@@ -226,17 +226,7 @@
  },
  {
   "t": 4500,
-  "k": "recorder.new",
-  "stream": 1
- },
- {
-  "t": 4500,
-  "k": "recorder.start"
- },
- {
-  "t": 4500,
-  "k": "audioContext.new",
-  "ctx": 4
+  "k": "getUserMedia"
  },
  {
   "t": 4500,
@@ -248,7 +238,7 @@
   "t": 4500,
   "k": "ui",
   "f": "label",
-  "v": "Listening..."
+  "v": "Starting..."
  },
  {
   "t": 4500,
@@ -266,6 +256,31 @@
   "t": 4500,
   "k": "system",
   "v": "Today's free Cloudflare voice allowance is used up. Replies continue as text, and voice input pauses until tomorrow — type instead."
+ },
+ {
+  "t": 4500,
+  "k": "getUserMedia.resolved",
+  "stream": 2
+ },
+ {
+  "t": 4550,
+  "k": "recorder.new",
+  "stream": 2
+ },
+ {
+  "t": 4550,
+  "k": "recorder.start"
+ },
+ {
+  "t": 4550,
+  "k": "audioContext.new",
+  "ctx": 4
+ },
+ {
+  "t": 4550,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
  },
  {
   "t": 8000,

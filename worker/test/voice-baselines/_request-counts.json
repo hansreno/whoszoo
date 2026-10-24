@@ -7,8 +7,6 @@
   "whisper-mute-while-listening": {},
   "whisper-mute-at-silence-cutoff": {},
   "whisper-mute-while-transcribing": {
-    "/chat": 1,
-    "/speak": 1,
     "/transcribe": 1
   },
   "whisper-hard-stop-while-thinking": {
@@ -116,5 +114,30 @@
     "/speak": 1,
     "/transcribe": 1
   },
-  "whisper-hard-stop-during-starting": {}
+  "whisper-hard-stop-during-starting": {},
+  "auto-mute-while-speaking-reply-ends": {
+    "/chat": 1,
+    "/speak": 1
+  },
+  "auto-mute-then-no-speech": {},
+  "auto-mute-then-onend": {},
+  "whisper-mute-while-speaking-reply-ends": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "iphone-mute-while-transcribing": {
+    "/transcribe": 1
+  },
+  "iphone-mute-thinking-reply-unmute": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "whisper-mute-during-starting": {},
+  "whisper-unmute-after-muted-wait": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  }
 }

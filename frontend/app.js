@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.2
-const APP_VERSION = "1.9.2";
+// WhosZoo — Frontend App v1.9.3
+const APP_VERSION = "1.9.3";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -63,7 +63,7 @@ let convAudioSource = null;   // currently playing AudioBufferSourceNode (AudioC
 let convRecognition = null;   // active recognition instance
 let convState = "idle";       // idle | listening | thinking | speaking | paused
 let convMuted = false;        // mic muted (audio unaffected)
-let whisperTranscribeAbort = null; // AbortController for in-flight /transcribe fetch — only aborted on exit/hard-stop, NOT on mute
+let whisperTranscribeAbort = null; // AbortController for the in-flight /transcribe — aborted on exit, hard stop, lock, and mute (mute cancels an unanswered turn)
 let journalDictating = false; // true when in a multi-turn journal dictation in conv mode
 let noSpeechCount = 0;        // consecutive no-speech events while journalDictating
 let convDoSend = null;        // set by convListen, called by orb tap in captured state
@@ -7425,11 +7425,12 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-// Mute is a pure mic gate — like covering the microphone with your finger.
-// Future audio frames are silenced; nothing in flight is touched. Captured
-// chunks continue through VAD/transcribe, in-flight /transcribe completes,
-// Claude reply continues, TTS keeps playing. Only the NEXT utterance is
-// blocked. See docs/conv-mode-requirements.md Rule 1.
+// Mute means nothing more goes out until unmute (v1.9.3). The decision is
+// VoiceLogic.muteActions(): Auto stops the recogniser (no audio to the browser's
+// speech service, no restart beeps; convListen() refuses to start one while
+// muted); Whisper gates the track, and a sentence still being transcribed is
+// cancelled. A reply already sent to Claude still plays — tapping the orb stops it.
+// See docs/conv-mode-requirements.md Rule 1.
 function toggleMute() {
   convMuted = !convMuted;
   convMuteBtn.classList.toggle("muted", convMuted);
@@ -7437,27 +7438,37 @@ function toggleMute() {
   if (thinkingAudioCtx && thinkingAudioCtx.state !== 'running') {
     thinkingAudioCtx.resume().catch(() => {});
   }
-  if (useWhisper()) {
-    if (!whisperStream) return;
-    // Flip the WebRTC track gate.
-    whisperStream.getTracks().forEach(t => { t.enabled = !convMuted; });
-    // Restart the recorder on BOTH edges while actively listening in chat mode:
-    // - Mute edge: discards pre-mute speech + resets VAD latch so silence timer
-    //   can't auto-send the buffered audio 900ms later (the primary leak path).
-    // - Unmute edge: discards accumulated silent chunks so Whisper never sees a
-    //   large silent prefix; also gives a fresh WebM header for the new recording.
-    // Rule 1 (revised): mute = retroactive drop of the current utterance.
-    // In-flight turns whose silence timeout already elapsed are NOT cancelled —
-    // that speech is "done" and replacing the transcription token would cancel randomly
-    // based on network timing. Journal PTT is excluded (user controls stop explicitly).
-    if (whisperRecorder && !journalDictating && convState === "listening") {
-      restartWhisperRecorder();
+  if (journalDictating) return; // mute is hidden in journal mode
+  const actions = VoiceLogic.muteActions({
+    mode: useWhisper() ? "whisper" : "auto",
+    phase: convState,
+    muted: convMuted,
+    transcribing: whisperTranscribeAbort !== null,
+    hasRecorder: whisperRecorder !== null,
+    hasStream: whisperStream !== null,
+  });
+  // Synchronous on purpose: resumeListening must reach getUserMedia inside
+  // this tap, or iOS refuses the mic.
+  let cancelled = false;
+  for (const a of actions) {
+    if (a === "gateTrack") whisperStream.getTracks().forEach(t => { t.enabled = !convMuted; });
+    else if (a === "restartRecorder") restartWhisperRecorder();
+    else if (a === "cancelTranscription") {
+      try { whisperTranscribeAbort.abort(); } catch {}
+      whisperTranscribeAbort = null;
+      currentTranscription = {};
+      cancelled = true;
     }
-  } else {
-    // Auto mode: restart recognition on unmute so Chrome's buffered speech
-    // from while muted is discarded — deterministic drop, matches Whisper behavior.
-    if (!convMuted && convState === "listening") convListen();
+    else if (a === "resumeListening") { orbPttActive = true; startWhisperPTT(); }
+    else if (a === "stopRecognizer") {
+      convRecognizerToken = {};
+      stopConvRecognition();
+      if (convTranscriptEl.textContent.trim()) cancelled = true; // half-heard words are dropped: say so
+    }
+    else if (a === "startRecognizer") convListen();
   }
+  if (cancelled) convTranscriptEl.textContent = t("conv.transcript.muted-not-sent");
+  renderConvState();
 }
 
 // Orb interaction — PTT in journal mode, tap elsewhere
@@ -7642,7 +7653,7 @@ function handleOrbTap() {
     // Was in active state — hard stop already fired on pointerdown, stay paused
     return;
   }
-  // Was paused/idle — start listening (mute flag stays as-is; it's a mic gate, not a block)
+  // Was paused/idle — start listening (while muted, convListen() waits muted and starts no recogniser)
   convListen();
 }
 
@@ -7694,11 +7705,18 @@ function stopThinkingSound() {
   thinkingNodes = null;
 }
 
+// Orb class and label for the current state, with no other side effects —
+// toggleMute uses this so muting while thinking doesn't restart the chime.
+function renderConvState() {
+  convOrb.className = VoiceLogic.orbClassFor({ phase: convState, journal: journalDictating, muted: convMuted });
+  convLabel.classList.remove("conv-label--starting");
+  const labelKey = VoiceLogic.convLabelKeyFor({ phase: convState, journal: journalDictating, muted: convMuted, chunks: journalChunks.length });
+  convLabel.textContent = labelKey ? t(labelKey) : "";
+}
+
 function setConvState(state) {
   convState = state;
-  convOrb.className = VoiceLogic.orbClassFor({ phase: state, journal: journalDictating });
-  const labelKey = VoiceLogic.convLabelKeyFor({ phase: state, journal: journalDictating, muted: convMuted, chunks: journalChunks.length });
-  convLabel.textContent = labelKey ? t(labelKey) : "";
+  renderConvState();
   // Note: transcript is NOT wiped on every transition. It's wiped only when a
   // fresh listening cycle begins (top of convListen and startWhisperPTT) so the
   // user can see "what was heard" persist through thinking → speaking → next listen.
@@ -7792,6 +7810,9 @@ function convListen() {
   convDiscardBtn.disabled = true;
   noSpeechCount = 0;
   const myToken = convRecognizerToken = {};
+  // Mute means nothing more goes out: never start a recogniser while muted
+  // (no audio to the speech service, no restart beeps). Unmute restarts it.
+  if (convMuted && !journalDictating) { setConvState("listening"); return; }
 
   // Fresh listening cycle — wipe the previous "what was heard" text so the
   // new utterance starts on a blank canvas.
@@ -8272,6 +8293,10 @@ function restartWhisperRecorder() {
 
 async function startWhisperPTT() {
   const myToken = whisperStartToken = {};
+  // The iOS pre-acquire belongs to the tap that made it. Take it now, so a later
+  // turn can never reuse that promise after its stream has been released.
+  const preAcquire = _iosMicPreAcquire;
+  _iosMicPreAcquire = null;
   try {
     clearTimeout(_streamIdleTimer); _streamIdleTimer = null;
     stopThinkingSound(); // stops oscillators; AudioContext closed separately in exitConvMode
@@ -8294,13 +8319,13 @@ async function startWhisperPTT() {
     // latency on mobile (OS mic acquisition takes 500ms–2s each time).
     // On iOS: stream may have been pre-acquired at pointerdown (see _iosMicPreAcquire),
     // so we allow iOS to reuse whisperStream here; it is released after each turn in
-    // stopWhisperRecorder() so the next turn picks it up fresh via pre-acquire again.
+    // stopWhisperRecorder(), so later turns call getUserMedia again (the pre-acquire is
+    // taken once, at entry above, and never reused).
     const activeTracks = whisperStream && whisperStream.getTracks().filter(t => t.readyState === 'live' && !t.muted);
     if (!activeTracks || activeTracks.length === 0) {
       // On iOS, consume the pre-acquire promise (triggered at pointerdown in the gesture).
       // On Android/desktop, call getUserMedia directly — stream is held persistently.
-      const streamPromise = _iosMicPreAcquire || navigator.mediaDevices.getUserMedia({ audio: true });
-      _iosMicPreAcquire = null;
+      const streamPromise = preAcquire || navigator.mediaDevices.getUserMedia({ audio: true });
       convLabel.textContent = t("conv.label.starting");
       convLabel.classList.add("conv-label--starting");
       const stream = await streamPromise;
@@ -8317,8 +8342,13 @@ async function startWhisperPTT() {
         if (!orbPttActive) convLabel.classList.remove("conv-label--starting");
         return;
       }
-      convLabel.classList.remove("conv-label--starting");
-      convLabel.textContent = t("conv.label.listening");
+      if (journalDictating) {
+        // Journal keeps its v1.9.2 label here; journal changes are a later stage.
+        convLabel.classList.remove("conv-label--starting");
+        convLabel.textContent = t("conv.label.listening");
+      } else {
+        setConvState("listening"); // the label goes through the table (muted or not)
+      }
       if (!orbPttActive) {
         stream.getTracks().forEach(t => t.stop());
         setConvState(journalDictating ? "paused" : "idle");
@@ -8379,10 +8409,10 @@ function stopWhisperRecorder() {
 }
 
 async function transcribeAudio(blob) {
-  // Per Rule 1c: a fresh AbortController is wired so toggleMute() can cancel
+  // A fresh AbortController per call (owned via ctl) so mute, hard stop, exit and lock can cancel
   // an in-flight transcription. Without this the network call completes and
   // bills tokens even when the user has already muted.
-  whisperTranscribeAbort = new AbortController();
+  const ctl = whisperTranscribeAbort = new AbortController();
   try {
     const res = await fetch(config.url + "/transcribe", {
       method: "POST",
@@ -8392,7 +8422,7 @@ async function transcribeAudio(blob) {
         "X-Whisper-Language": localStorage.getItem(WHISPER_LANG_KEY) || "en",
       },
       body: blob,
-      signal: whisperTranscribeAbort.signal,
+      signal: ctl.signal,
     });
     const data = await res.json();
     if (!data.ok) {
@@ -8402,7 +8432,7 @@ async function transcribeAudio(blob) {
     }
     return (data.text || "").trim();
   } finally {
-    whisperTranscribeAbort = null;
+    if (whisperTranscribeAbort === ctl) whisperTranscribeAbort = null;
   }
 }
 
@@ -8729,7 +8759,7 @@ async function speakText(text, autoLoop = false) {
       convAudio = null;
     }
 
-    // After speaking: resume listening (mute state handled inside each listener — mic gate only)
+    // After speaking: resume listening (while muted: Whisper keeps the track gated, Auto waits without a recogniser)
     afterSpeak();
     // If convState is "paused" (user hard-stopped), leave it as-is
   } catch (err) {

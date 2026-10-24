@@ -31,6 +31,7 @@ scenario("whisper-mute-while-listening", W, async (app) => {
   await app.say(800);
   await app.click("conv-mute"); await app.advance(2000);
   await app.click("conv-mute"); await app.advance(500);
+  assert.ok(app.trace.some(e => e.k === "ui" && e.f === "label" && /Muted — tap/.test(e.v)), "muted label shown");
 });
 
 scenario("whisper-mute-at-silence-cutoff", W, async (app) => {
@@ -45,6 +46,7 @@ scenario("whisper-mute-while-transcribing", W, async (app) => {
   await app.press("conv-btn"); await app.advance(300); await app.say(1500);
   await until(app, e => e.k === "fetch" && e.path === "/transcribe");
   await app.click("conv-mute"); await app.advance(5000);
+  assert.deepEqual({ c: app.counts["/chat"] || 0, s: app.counts["/speak"] || 0 }, { c: 0, s: 0 }, "a muted, unanswered sentence is cancelled");
 });
 
 scenario("whisper-hard-stop-while-thinking", W, async (app) => {
@@ -78,6 +80,13 @@ scenario("iphone-turn", IPH, async (app) => {
   const d = app.trace.findIndex(e => e.k === "pointerdown" && e.el === "conv-btn");
   const de = app.trace.findIndex((e, i) => i > d && e.k === "pointerdown.end");
   assert.ok(app.trace.slice(d, de).some(e => e.k === "getUserMedia"), "getUserMedia inside pointerdown");
+  // Every recorder must record from a live stream: iOS releases the stream after
+  // each turn, so a later turn needs a fresh one, never the first tap's promise.
+  for (const [i, e] of app.trace.entries()) {
+    if (e.k !== "recorder.new") continue;
+    const stopped = app.trace.slice(0, i).some(x => x.k === "track.stop" && x.stream === e.stream);
+    assert.equal(stopped, false, `recorder at ${e.t} ms uses stream ${e.stream}, already stopped`);
+  }
 });
 
 scenario("slow-mic-then-hard-stop-and-retap", { ...W, fakes: { gumDelayMs: 1500 } }, async (app) => {
@@ -104,18 +113,27 @@ scenario("auto-mute-then-speak", A, async (app) => {
   await app.press("conv-btn"); await app.advance(100);
   await app.click("conv-mute");
   app.recognizer().result("this should be dropped"); await app.advance(1500);
+  const muteAt = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.equal(app.trace.slice(muteAt).filter(e => e.k === "recognizer.new").length, 0, "no recogniser starts while muted");
 });
 
 scenario("auto-mute-with-final-pending", A, async (app) => {
   await app.press("conv-btn"); await app.advance(100);
   app.recognizer().result("half a thought"); await app.advance(200);
   await app.click("conv-mute"); await app.advance(1500);
+  const shown = app.trace.filter(e => e.k === "ui" && e.f === "transcript");
+  assert.equal(shown[shown.length - 1].v, "Muted — not sent", "half-heard words that will never be sent say so");
+  const muteAt = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.equal(app.trace.slice(muteAt).filter(e => e.k === "recognizer.new").length, 0, "no recogniser starts while muted");
 });
 
 scenario("auto-unmute-restarts-recognizer", A, async (app) => {
   await app.press("conv-btn"); await app.advance(100);
   await app.click("conv-mute"); await app.advance(300);
   await app.click("conv-mute"); await app.advance(300);
+  const clicks = app.trace.map((e, i) => (e.k === "click" && e.el === "conv-mute" ? i : -1)).filter(i => i >= 0);
+  assert.equal(app.trace.slice(clicks[0], clicks[1]).filter(e => e.k === "recognizer.new").length, 0, "no recogniser while muted");
+  assert.equal(app.trace.slice(clicks[1]).filter(e => e.k === "recognizer.new").length, 1, "unmute starts one fresh recogniser");
 });
 
 scenario("auto-recognizer-ends-with-final-pending", A, async (app) => {
@@ -299,4 +317,67 @@ scenario("whisper-hard-stop-during-starting", { ...W, fakes: { gumDelayMs: 1500 
   await app.press("conv-btn"); await app.advance(200);
   await app.press("conv-orb"); await app.advance(3000);
   assert.equal(app.w.document.getElementById("conv-label").classList.contains("conv-label--starting"), false, "the Starting pulse ends once the stale grant is dropped");
+});
+
+// ---- Stage 2, part B: mute (recorded on v1.9.2 first) ----
+scenario("auto-mute-while-speaking-reply-ends", AND_AUTO, async (app) => {
+  await app.press("conv-btn"); await app.advance(100);
+  app.recognizer().result("Remind me about Lily"); await app.advance(1000);
+  await until(app, e => e.k === "tts.play");
+  await app.click("conv-mute"); await app.advance(5000);
+  const muteAt = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.equal(app.trace.slice(muteAt).filter(e => e.k === "recognizer.new").length, 0, "no recogniser starts while muted");
+});
+
+scenario("auto-mute-then-no-speech", AND_AUTO, async (app) => {
+  await app.press("conv-btn"); await app.advance(100);
+  await app.click("conv-mute"); await app.advance(200);
+  app.recognizer().error("no-speech"); await app.advance(1000);
+  const muteAt = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.equal(app.trace.slice(muteAt).filter(e => e.k === "recognizer.new").length, 0, "no recogniser starts while muted");
+});
+
+scenario("auto-mute-then-onend", AND_AUTO, async (app) => {
+  await app.press("conv-btn"); await app.advance(100);
+  await app.click("conv-mute"); await app.advance(200);
+  app.recognizer().end(); await app.advance(1000);
+  const muteAt = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.equal(app.trace.slice(muteAt).filter(e => e.k === "recognizer.new").length, 0, "no recogniser starts while muted");
+});
+
+scenario("whisper-mute-while-speaking-reply-ends", W, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await until(app, e => e.k === "tts.play");
+  await app.click("conv-mute"); await app.advance(5000);
+});
+
+scenario("whisper-unmute-after-muted-wait", W, async (app) => {
+  await app.press("conv-btn"); await app.advance(300);
+  await app.click("conv-mute"); await app.say(1500); await app.advance(2000);
+  await app.click("conv-mute"); await app.advance(300); await app.say(1500); await app.advance(5000);
+});
+
+scenario("iphone-mute-while-transcribing", IPH, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await until(app, e => e.k === "fetch" && e.path === "/transcribe");
+  await app.clickMarked("conv-mute"); await app.advance(5000);
+  assert.equal(app.counts["/chat"] || 0, 0, "cancelled: nothing sent to Claude");
+  const c = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
+  const ce = app.trace.findIndex(e => e.k === "click.end" && e.el === "conv-mute");
+  assert.ok(app.trace.slice(c, ce).some(e => e.k === "getUserMedia"), "iOS: the mic is re-requested inside the tap");
+  assert.ok(app.trace.some(e => e.k === "ui" && e.f === "transcript" && e.v === "Muted — not sent"), "the cancelled sentence says so");
+});
+
+scenario("iphone-mute-thinking-reply-unmute", IPH, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await until(app, e => e.k === "fetch" && e.path === "/chat");
+  await app.click("conv-mute"); await app.advance(5000);
+  await app.clickMarked("conv-mute"); await app.advance(1000);
+  const lastClick = app.trace.findLastIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.ok(app.trace.slice(lastClick).some(e => e.k === "recorder.new"), "unmute after a turn on iPhone starts listening");
+});
+
+scenario("whisper-mute-during-starting", { ...W, fakes: { gumDelayMs: 1500 } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(200);   // "Starting..."
+  await app.click("conv-mute"); await app.advance(3000);
 });

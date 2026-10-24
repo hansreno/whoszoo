@@ -68,3 +68,23 @@ test("clickMarked records click.end after everything the click ran synchronously
     assert.ok(i >= 0 && j > i);
   } finally { app.close(); }
 });
+
+test("fakes: a disabled (muted) mic track reads as silence, like a real browser", async () => {
+  const app = await loadVoiceApp({ device: "android", inputMode: "whisper" });
+  try {
+    const md = app.w.navigator.mediaDevices;
+    const p = md.getUserMedia({ audio: true });
+    await app.advance(50);
+    const stream = await p;
+    const ctx = new app.w.AudioContext();
+    const an = ctx.createAnalyser();
+    ctx.createMediaStreamSource(stream).connect(an);
+    const buf = new Float32Array(4);
+    app.ctl.setLevel(0.5);
+    an.getFloatTimeDomainData(buf);
+    assert.equal(buf[0], 0.5, "live track hears the level");
+    stream.getTracks()[0].enabled = false;
+    an.getFloatTimeDomainData(buf);
+    assert.equal(buf[0], 0, "disabled track is silent");
+  } finally { app.close(); }
+});

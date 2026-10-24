@@ -385,6 +385,14 @@ test("a journal recording that cannot be transcribed is kept for the user, not d
   assert.match(hw.slice(hw.lastIndexOf("catch (err)")), /keepFailedRecording\(blob\)/);
 });
 
+test("mute is decided by VoiceLogic.muteActions and toggleMute has no early stream return", () => {
+  const body = appCode.slice(appCode.indexOf("function toggleMute()"), appCode.indexOf("function toggleMute()") + 2500);
+  assert.match(body, /VoiceLogic\.muteActions\(/);
+  assert.doesNotMatch(body, /if \(!whisperStream\) return;/);
+  const listen = appCode.slice(appCode.indexOf("function convListen()"), appCode.indexOf("function convListen()") + 600);
+  assert.match(listen, /if \(convMuted && !journalDictating\)/);
+});
+
 test("lockApp ends the voice turn: every token replaced and the transcription aborted", () => {
   const body = appCode.slice(appCode.indexOf("function lockApp()"), appCode.indexOf("function lockApp()") + 2500);
   for (const tok of ["currentTranscription", "convRecognizerToken", "pttToken", "speakToken", "whisperStartToken"]) {

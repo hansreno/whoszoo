@@ -84,3 +84,53 @@ test("convLabelKeyFor returns today's keys for every phase", () => {
   assert.equal(k("captured"), "conv.label.captured");
   assert.equal(k("nonsense"), "");
 });
+
+const MA = (o) => VoiceLogic.muteActions({ mode: "whisper", phase: "listening", muted: true, transcribing: false, hasRecorder: true, hasStream: true, ...o });
+
+test("muteActions, Whisper muting while listening: gate the track and restart the recorder", () => {
+  assert.deepEqual(MA({}), ["gateTrack", "restartRecorder"]);
+});
+test("muteActions, Whisper muting while transcribing: cancel it and resume listening muted", () => {
+  assert.deepEqual(MA({ phase: "thinking", transcribing: true, hasRecorder: false }), ["gateTrack", "cancelTranscription", "resumeListening"]);
+});
+test("muteActions, iPhone muting while transcribing (stream already released): no gate, still cancel and resume", () => {
+  assert.deepEqual(MA({ phase: "thinking", transcribing: true, hasRecorder: false, hasStream: false }), ["cancelTranscription", "resumeListening"]);
+});
+test("muteActions, Whisper muting while thinking or speaking: gate only (the reply plays)", () => {
+  assert.deepEqual(MA({ phase: "speaking", hasRecorder: false }), ["gateTrack"]);
+  assert.deepEqual(MA({ phase: "thinking", hasRecorder: false, hasStream: false }), []);
+});
+test("muteActions, Whisper muting during Starting (no stream yet): nothing; the grant applies the gate", () => {
+  assert.deepEqual(MA({ hasRecorder: false, hasStream: false }), []);
+});
+test("muteActions, Whisper unmuting while listening with a recorder: gate and restart", () => {
+  assert.deepEqual(MA({ muted: false }), ["gateTrack", "restartRecorder"]);
+});
+test("muteActions, Whisper unmuting while listening without a recorder (iPhone after a turn): resume listening", () => {
+  assert.deepEqual(MA({ muted: false, hasRecorder: false, hasStream: false }), ["resumeListening"]);
+});
+test("muteActions, Whisper unmuting while speaking: gate only", () => {
+  assert.deepEqual(MA({ muted: false, phase: "speaking", hasRecorder: false }), ["gateTrack"]);
+});
+test("muteActions, Auto muting while listening: stop the recogniser", () => {
+  assert.deepEqual(MA({ mode: "auto" }), ["stopRecognizer"]);
+});
+test("muteActions, Auto muting while thinking or speaking: nothing (the convListen gate covers the restart)", () => {
+  assert.deepEqual(MA({ mode: "auto", phase: "speaking" }), []);
+});
+test("muteActions, Auto unmuting while listening: fresh recogniser", () => {
+  assert.deepEqual(MA({ mode: "auto", muted: false }), ["startRecognizer"]);
+});
+test("muteActions, Auto unmuting while speaking: nothing", () => {
+  assert.deepEqual(MA({ mode: "auto", muted: false, phase: "speaking" }), []);
+});
+test("orbClassFor dims the orb only while listening muted outside journal", () => {
+  assert.equal(VoiceLogic.orbClassFor({ phase: "listening", journal: false, muted: true }), "conv-orb listening muted");
+  assert.equal(VoiceLogic.orbClassFor({ phase: "speaking", journal: false, muted: true }), "conv-orb speaking");
+  assert.equal(VoiceLogic.orbClassFor({ phase: "listening", journal: true, muted: true }), "conv-orb listening journal");
+});
+test("convLabelKeyFor shows the muted label while listening muted", () => {
+  assert.equal(VoiceLogic.convLabelKeyFor({ phase: "listening", journal: false, muted: true, chunks: 0 }), "conv.label.muted-listening");
+  assert.equal(VoiceLogic.convLabelKeyFor({ phase: "listening", journal: true, muted: true, chunks: 0 }), "conv.label.recording");
+  assert.equal(VoiceLogic.convLabelKeyFor({ phase: "listening", journal: false, muted: false, chunks: 0 }), "conv.label.listening");
+});

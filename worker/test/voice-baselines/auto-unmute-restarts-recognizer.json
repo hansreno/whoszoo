@@ -105,6 +105,23 @@
  },
  {
   "t": 750,
+  "k": "recognizer.stop",
+  "r": 1
+ },
+ {
+  "t": 750,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening muted"
+ },
+ {
+  "t": 750,
+  "k": "ui",
+  "f": "label",
+  "v": "Muted — tap 🎤 to listen"
+ },
+ {
+  "t": 750,
   "k": "ui",
   "f": "mute",
   "v": "muted"
@@ -121,11 +138,6 @@
  },
  {
   "t": 1100,
-  "k": "recognizer.stop",
-  "r": 1
- },
- {
-  "t": 1100,
   "k": "recognizer.new",
   "r": 2
  },
@@ -133,6 +145,18 @@
   "t": 1100,
   "k": "recognizer.start",
   "r": 2
+ },
+ {
+  "t": 1100,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening"
+ },
+ {
+  "t": 1100,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
  },
  {
   "t": 1100,

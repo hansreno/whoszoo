@@ -192,79 +192,49 @@
  },
  {
   "t": 3500,
-  "k": "ui",
-  "f": "mute",
-  "v": "muted"
+  "k": "fetch.aborted",
+  "path": "/transcribe"
  },
  {
-  "t": 3700,
-  "k": "fetch",
-  "path": "/chat",
-  "mode": "ok"
- },
- {
-  "t": 3700,
-  "k": "ui",
-  "f": "transcript",
-  "v": "Remind me about Lily"
- },
- {
-  "t": 4300,
-  "k": "fetch",
-  "path": "/speak",
-  "mode": "ok"
- },
- {
-  "t": 4300,
-  "k": "ui",
-  "f": "orb",
-  "v": "conv-orb speaking"
- },
- {
-  "t": 4300,
-  "k": "ui",
-  "f": "label",
-  "v": "Tap orb to interrupt"
- },
- {
-  "t": 4500,
-  "k": "tts.play",
-  "ctx": 1
- },
- {
-  "t": 6000,
+  "t": 3500,
   "k": "browserVoice.cancel"
  },
  {
-  "t": 6000,
+  "t": 3500,
   "k": "recorder.new",
   "stream": 1
  },
  {
-  "t": 6000,
+  "t": 3500,
   "k": "recorder.start"
  },
  {
-  "t": 6000,
+  "t": 3500,
   "k": "audioContext.new",
   "ctx": 4
  },
  {
-  "t": 6000,
+  "t": 3500,
   "k": "ui",
   "f": "orb",
-  "v": "conv-orb listening"
+  "v": "conv-orb listening muted"
  },
  {
-  "t": 6000,
+  "t": 3500,
   "k": "ui",
   "f": "label",
-  "v": "Listening..."
+  "v": "Muted — tap 🎤 to listen"
  },
  {
-  "t": 6000,
+  "t": 3500,
   "k": "ui",
   "f": "transcript",
-  "v": ""
+  "v": "Muted — not sent"
+ },
+ {
+  "t": 3500,
+  "k": "ui",
+  "f": "mute",
+  "v": "muted"
  }
 ]

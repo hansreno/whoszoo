@@ -183,6 +183,18 @@
  {
   "t": 3450,
   "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening muted"
+ },
+ {
+  "t": 3450,
+  "k": "ui",
+  "f": "label",
+  "v": "Muted — tap 🎤 to listen"
+ },
+ {
+  "t": 3450,
+  "k": "ui",
   "f": "mute",
   "v": "muted"
  }

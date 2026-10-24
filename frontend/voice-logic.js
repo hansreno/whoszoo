@@ -57,14 +57,14 @@
 
   // The orb's class and the label under it, as functions of state. Returns
   // locale keys so app.js still translates with t().
-  function orbClassFor({ phase, journal }) {
-    return `conv-orb ${phase}${journal ? " journal" : ""}`;
+  function orbClassFor({ phase, journal, muted }) {
+    return `conv-orb ${phase}${journal ? " journal" : ""}${phase === "listening" && muted && !journal ? " muted" : ""}`;
   }
 
   function convLabelKeyFor({ phase, journal, muted, chunks }) {
     switch (phase) {
       case "idle": return "conv.label.idle";
-      case "listening": return journal ? "conv.label.recording" : "conv.label.listening";
+      case "listening": return journal ? "conv.label.recording" : muted ? "conv.label.muted-listening" : "conv.label.listening";
       case "thinking": return "conv.label.thinking";
       case "speaking": return "conv.label.speaking";
       case "paused": return journal ? (chunks === 0 ? "conv.label.hold-to-record" : "conv.label.chunks-ready") : "conv.label.paused";
@@ -73,7 +73,21 @@
     }
   }
 
-  const api = { version: "1.9.2", pttApplyResults, pttJoin, createPendingFinals, orbClassFor, convLabelKeyFor };
+  // Mute means nothing more goes out until unmute. Given the state at the tap
+  // (with `muted` already the NEW value), return what toggleMute must do, in order.
+  function muteActions({ mode, phase, muted, transcribing, hasRecorder, hasStream }) {
+    if (mode === "auto") {
+      if (phase !== "listening") return [];
+      return [muted ? "stopRecognizer" : "startRecognizer"];
+    }
+    const gate = hasStream ? ["gateTrack"] : [];
+    if (muted && transcribing) return [...gate, "cancelTranscription", "resumeListening"];
+    if (phase === "listening" && hasRecorder) return [...gate, "restartRecorder"];
+    if (phase === "listening" && !muted) return ["resumeListening"];
+    return gate;
+  }
+
+  const api = { version: "1.9.3", pttApplyResults, pttJoin, createPendingFinals, orbClassFor, convLabelKeyFor, muteActions };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.VoiceLogic = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

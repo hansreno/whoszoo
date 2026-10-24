@@ -1,0 +1,162 @@
+[
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap to chat · Hold to journal"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "transcript",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "toast",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "overlay",
+  "v": "hidden"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "mute",
+  "v": "live"
+ },
+ {
+  "t": 500,
+  "k": "pointerdown",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "audioContext.new",
+  "ctx": 1
+ },
+ {
+  "t": 500,
+  "k": "pointerdown.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "touchstart",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "pointerup",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "browserVoice.cancel"
+ },
+ {
+  "t": 600,
+  "k": "audioContext.new",
+  "ctx": 2
+ },
+ {
+  "t": 600,
+  "k": "getUserMedia"
+ },
+ {
+  "t": 600,
+  "k": "pointerup.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening"
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "label",
+  "v": "Starting..."
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "overlay",
+  "v": "open"
+ },
+ {
+  "t": 600,
+  "k": "touchend",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "click",
+  "el": "conv-btn"
+ },
+ {
+  "t": 800,
+  "k": "audioContext.close",
+  "ctx": 2
+ },
+ {
+  "t": 850,
+  "k": "click",
+  "el": "conv-mute"
+ },
+ {
+  "t": 850,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening muted"
+ },
+ {
+  "t": 850,
+  "k": "ui",
+  "f": "label",
+  "v": "Muted — tap 🎤 to listen"
+ },
+ {
+  "t": 850,
+  "k": "ui",
+  "f": "mute",
+  "v": "muted"
+ },
+ {
+  "t": 2100,
+  "k": "getUserMedia.resolved",
+  "stream": 1
+ },
+ {
+  "t": 2100,
+  "k": "recorder.new",
+  "stream": 1
+ },
+ {
+  "t": 2100,
+  "k": "recorder.start"
+ },
+ {
+  "t": 2100,
+  "k": "track.enabled",
+  "stream": 1,
+  "value": false
+ },
+ {
+  "t": 2100,
+  "k": "audioContext.new",
+  "ctx": 3
+ }
+]

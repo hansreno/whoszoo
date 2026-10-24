@@ -231,17 +231,7 @@
  },
  {
   "t": 6000,
-  "k": "recorder.new",
-  "stream": 1
- },
- {
-  "t": 6000,
-  "k": "recorder.start"
- },
- {
-  "t": 6000,
-  "k": "audioContext.new",
-  "ctx": 4
+  "k": "getUserMedia"
  },
  {
   "t": 6000,
@@ -253,12 +243,37 @@
   "t": 6000,
   "k": "ui",
   "f": "label",
-  "v": "Listening..."
+  "v": "Starting..."
  },
  {
   "t": 6000,
   "k": "ui",
   "f": "transcript",
   "v": ""
+ },
+ {
+  "t": 6000,
+  "k": "getUserMedia.resolved",
+  "stream": 2
+ },
+ {
+  "t": 6050,
+  "k": "recorder.new",
+  "stream": 2
+ },
+ {
+  "t": 6050,
+  "k": "recorder.start"
+ },
+ {
+  "t": 6050,
+  "k": "audioContext.new",
+  "ctx": 4
+ },
+ {
+  "t": 6050,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
  }
 ]

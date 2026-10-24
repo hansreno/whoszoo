@@ -1120,6 +1120,8 @@ html, body {
   animation: orbListen 1.2s ease-in-out infinite;
 }
 .conv-orb.listening::after { border-color: rgba(59, 130, 246, 0.3); animation: orbRing 1.2s ease-in-out infinite; }
+.conv-orb.listening.muted { opacity: 0.45; animation: none; }
+.conv-orb.listening.muted::after { animation: none; }
 .conv-orb.thinking {
   background: rgba(245, 158, 11, 0.15);
   border-color: var(--amber);
