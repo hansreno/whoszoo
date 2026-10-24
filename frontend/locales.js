@@ -84,6 +84,7 @@ const LOCALES = {
     "voice.ai-not-configured":     "Voice needs the Cloudflare AI connection. Run the update at whoszoo.app/setup to add it.",
     "voice.recording-kept":        "This journal recording couldn't be transcribed, so it has been kept. Save it below, then type it in or dictate it again later.",
     "voice.recording-download":    "⬇ Save recording",
+    "voice.reload-needed":         "Voice mode needs a refresh — reload the page.",
     "settings.apikey-not-configured": "Not configured",
     "settings.apikey-btn-save":         "Save",
     "settings.apikey-btn-save-loading": "Saving…",
@@ -487,6 +488,7 @@ const LOCALES = {
     "voice.ai-not-configured":     "La voz necesita la conexión de IA de Cloudflare. Ejecuta la actualización en whoszoo.app/setup para añadirla.", // needs-review
     "voice.recording-kept":        "No se pudo transcribir esta grabación del diario, así que se ha conservado. Guárdala abajo y luego escríbela o díctala de nuevo más tarde.", // needs-review
     "voice.recording-download":    "⬇ Guardar grabación", // needs-review
+    "voice.reload-needed":         "El modo de voz necesita actualizarse: recarga la página.", // needs-review
     "settings.apikey-not-configured": "No configurado",
     "settings.apikey-btn-save":         "Guardar",
     "settings.apikey-btn-save-loading": "Guardando…",
@@ -890,6 +892,7 @@ const LOCALES = {
     "voice.ai-not-configured":     "La voix a besoin de la connexion IA de Cloudflare. Lancez la mise à jour sur whoszoo.app/setup pour l'ajouter.", // needs-review
     "voice.recording-kept":        "Cet enregistrement du journal n'a pas pu être transcrit, il a donc été conservé. Enregistrez-le ci-dessous, puis saisissez-le ou dictez-le à nouveau plus tard.", // needs-review
     "voice.recording-download":    "⬇ Enregistrer l'audio", // needs-review
+    "voice.reload-needed":         "Le mode vocal doit être actualisé : rechargez la page.", // needs-review
     "settings.apikey-not-configured": "Non configuré",
     "settings.apikey-btn-save":         "Enregistrer",
     "settings.apikey-btn-save-loading": "Enregistrement…",
@@ -1293,6 +1296,7 @@ const LOCALES = {
     "voice.ai-not-configured":     "वॉइस के लिए Cloudflare AI कनेक्शन चाहिए। इसे जोड़ने के लिए whoszoo.app/setup पर अपडेट चलाएँ।", // needs-review
     "voice.recording-kept":        "इस जर्नल रिकॉर्डिंग को टेक्स्ट में नहीं बदला जा सका, इसलिए इसे संभालकर रखा गया है। इसे नीचे सेव करें, फिर बाद में टाइप करें या दोबारा बोलें।", // needs-review
     "voice.recording-download":    "⬇ रिकॉर्डिंग सेव करें", // needs-review
+    "voice.reload-needed":         "वॉइस मोड को रीफ़्रेश करना होगा — पेज दोबारा लोड करें।", // needs-review
     "settings.apikey-not-configured": "कॉन्फ़िगर नहीं है", // needs-review
     "settings.apikey-btn-save":         "सेव करें", // needs-review
     "settings.apikey-btn-save-loading": "सेव हो रहा है…", // needs-review

@@ -1,0 +1,89 @@
+{
+  "whisper-android-turn": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "whisper-mute-while-listening": {},
+  "whisper-mute-at-silence-cutoff": {},
+  "whisper-mute-while-transcribing": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "whisper-hard-stop-while-thinking": {
+    "/chat": 1,
+    "/transcribe": 1
+  },
+  "whisper-hard-stop-while-speaking": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "whisper-exit-mid-reply": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "allowance-on-speak-android": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "allowance-on-speak-iphone": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "ai-not-configured-on-speak": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "allowance-on-transcribe-twice": {
+    "/transcribe": 2
+  },
+  "iphone-turn": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "slow-mic-then-hard-stop-and-retap": {},
+  "auto-turn-two-finals": {
+    "/chat": 1,
+    "/speak": 1
+  },
+  "auto-no-speech-restart": {},
+  "auto-mute-then-speak": {},
+  "auto-mute-with-final-pending": {},
+  "auto-unmute-restarts-recognizer": {},
+  "auto-recognizer-ends-with-final-pending": {
+    "/chat": 1,
+    "/speak": 1
+  },
+  "journal-whisper-hold-and-chunk": {
+    "/transcribe": 1
+  },
+  "journal-whisper-finish": {
+    "/chat": 1,
+    "/transcribe": 1
+  },
+  "journal-transcribe-refused-keeps-recording": {
+    "/transcribe": 1
+  },
+  "journal-auto-ptt-cancel-keeps-hold": {},
+  "journal-auto-ptt-restart-mid-hold": {},
+  "journal-auto-ptt-error-then-end": {},
+  "journal-still-there-path": {},
+  "backgrounded-while-listening": {},
+  "auto-lock-mid-session": {},
+  "write-proposal-in-conversation": {
+    "/chat": 1,
+    "/getMemoryFile": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "journal-auto-ptt-echo-guard": {},
+  "voice-logic-missing-app-still-starts": {},
+  "journal-auto-ptt-repress-aborts-live-recognizer": {}
+}

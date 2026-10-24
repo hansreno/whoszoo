@@ -384,3 +384,11 @@ test("a journal recording that cannot be transcribed is kept for the user, not d
   const hw = appCode.slice(appCode.indexOf("async function handleWhisperResult"), appCode.indexOf("function processWhisperChunk"));
   assert.match(hw.slice(hw.lastIndexOf("catch (err)")), /keepFailedRecording\(blob\)/);
 });
+
+test("stale-callback guards are session tokens, not generation counters (voice stage 1)", () => {
+  for (const id of ["convListenGen", "pttGen", "whisperResultGen"]) {
+    assert.doesNotMatch(appCode, new RegExp(String.raw`\b${id}\b`), id);
+  }
+  assert.match(appCode, /const myToken = pttToken = \{\};/);
+  assert.match(appCode, /const myToken = convRecognizerToken = \{\};/);
+});

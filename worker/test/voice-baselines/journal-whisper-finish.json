@@ -1,0 +1,236 @@
+[
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap to chat · Hold to journal"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "transcript",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "toast",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "overlay",
+  "v": "hidden"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "mute",
+  "v": "live"
+ },
+ {
+  "t": 500,
+  "k": "pointerdown",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "audioContext.new",
+  "ctx": 1
+ },
+ {
+  "t": 500,
+  "k": "pointerdown.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "touchstart",
+  "el": "conv-btn"
+ },
+ {
+  "t": 1300,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb paused journal"
+ },
+ {
+  "t": 1300,
+  "k": "ui",
+  "f": "label",
+  "v": "Hold orb to record · Tap Finish when done"
+ },
+ {
+  "t": 1300,
+  "k": "ui",
+  "f": "overlay",
+  "v": "open"
+ },
+ {
+  "t": 1400,
+  "k": "pointerup",
+  "el": "conv-btn"
+ },
+ {
+  "t": 1400,
+  "k": "pointerup.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 1400,
+  "k": "touchend",
+  "el": "conv-btn"
+ },
+ {
+  "t": 1400,
+  "k": "click",
+  "el": "conv-btn"
+ },
+ {
+  "t": 1650,
+  "k": "pointerdown",
+  "el": "conv-orb"
+ },
+ {
+  "t": 1650,
+  "k": "browserVoice.cancel"
+ },
+ {
+  "t": 1650,
+  "k": "getUserMedia"
+ },
+ {
+  "t": 1650,
+  "k": "pointerdown.end",
+  "el": "conv-orb"
+ },
+ {
+  "t": 1650,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening journal"
+ },
+ {
+  "t": 1650,
+  "k": "ui",
+  "f": "label",
+  "v": "Starting..."
+ },
+ {
+  "t": 1650,
+  "k": "level",
+  "v": 0.05
+ },
+ {
+  "t": 1650,
+  "k": "getUserMedia.resolved",
+  "stream": 1
+ },
+ {
+  "t": 1700,
+  "k": "recorder.new",
+  "stream": 1
+ },
+ {
+  "t": 1700,
+  "k": "recorder.start"
+ },
+ {
+  "t": 1700,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
+ },
+ {
+  "t": 3650,
+  "k": "level",
+  "v": 0
+ },
+ {
+  "t": 3650,
+  "k": "pointerup",
+  "el": "conv-orb"
+ },
+ {
+  "t": 3650,
+  "k": "recorder.stop"
+ },
+ {
+  "t": 3650,
+  "k": "pointerup.end",
+  "el": "conv-orb"
+ },
+ {
+  "t": 3700,
+  "k": "fetch",
+  "path": "/transcribe",
+  "mode": "ok"
+ },
+ {
+  "t": 3900,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb paused journal"
+ },
+ {
+  "t": 3900,
+  "k": "ui",
+  "f": "label",
+  "v": "Hold for more · Tap chunk to select · Tap again to edit"
+ },
+ {
+  "t": 4650,
+  "k": "click",
+  "el": "conv-finish"
+ },
+ {
+  "t": 4650,
+  "k": "audioContext.close",
+  "ctx": 1
+ },
+ {
+  "t": 4650,
+  "k": "browserVoice.cancel"
+ },
+ {
+  "t": 4650,
+  "k": "track.stop",
+  "stream": 1
+ },
+ {
+  "t": 4650,
+  "k": "fetch",
+  "path": "/chat",
+  "mode": "ok"
+ },
+ {
+  "t": 4650,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb idle"
+ },
+ {
+  "t": 4650,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap to chat · Hold to journal"
+ },
+ {
+  "t": 4650,
+  "k": "ui",
+  "f": "overlay",
+  "v": "hidden"
+ },
+ {
+  "t": 5250,
+  "k": "system",
+  "v": "Journal entry wasn't saved — Claude didn't generate a write proposal. Try /journal to start a new entry, or type more detail into the chat and ask it to save."
+ }
+]

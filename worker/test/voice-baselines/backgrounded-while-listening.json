@@ -1,0 +1,169 @@
+[
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap to chat · Hold to journal"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "transcript",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "toast",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "overlay",
+  "v": "hidden"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "mute",
+  "v": "live"
+ },
+ {
+  "t": 500,
+  "k": "pointerdown",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "audioContext.new",
+  "ctx": 1
+ },
+ {
+  "t": 500,
+  "k": "pointerdown.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "touchstart",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "pointerup",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "browserVoice.cancel"
+ },
+ {
+  "t": 600,
+  "k": "audioContext.new",
+  "ctx": 2
+ },
+ {
+  "t": 600,
+  "k": "getUserMedia"
+ },
+ {
+  "t": 600,
+  "k": "pointerup.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb listening"
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "label",
+  "v": "Starting..."
+ },
+ {
+  "t": 600,
+  "k": "ui",
+  "f": "overlay",
+  "v": "open"
+ },
+ {
+  "t": 600,
+  "k": "touchend",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "click",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "getUserMedia.resolved",
+  "stream": 1
+ },
+ {
+  "t": 650,
+  "k": "recorder.new",
+  "stream": 1
+ },
+ {
+  "t": 650,
+  "k": "recorder.start"
+ },
+ {
+  "t": 650,
+  "k": "audioContext.new",
+  "ctx": 3
+ },
+ {
+  "t": 650,
+  "k": "ui",
+  "f": "label",
+  "v": "Listening..."
+ },
+ {
+  "t": 800,
+  "k": "audioContext.close",
+  "ctx": 2
+ },
+ {
+  "t": 950,
+  "k": "visibility",
+  "v": "hidden"
+ },
+ {
+  "t": 950,
+  "k": "browserVoice.cancel"
+ },
+ {
+  "t": 950,
+  "k": "audioContext.close",
+  "ctx": 3
+ },
+ {
+  "t": 950,
+  "k": "recorder.stop"
+ },
+ {
+  "t": 950,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb paused"
+ },
+ {
+  "t": 950,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap orb to chat  •  Hold to journal"
+ }
+]

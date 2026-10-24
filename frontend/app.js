@@ -1,5 +1,8 @@
-// WhosZoo — Frontend App v1.9.0
-const APP_VERSION = "1.9.0";
+// WhosZoo — Frontend App v1.9.1
+const APP_VERSION = "1.9.1";
+// voice-logic.js loads before this file. A stale cached copy (or none) must not
+// break the app: voice is disabled with a clear message instead.
+const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -64,7 +67,7 @@ let whisperTranscribeAbort = null; // AbortController for in-flight /transcribe 
 let journalDictating = false; // true when in a multi-turn journal dictation in conv mode
 let noSpeechCount = 0;        // consecutive no-speech events while journalDictating
 let convDoSend = null;        // set by convListen, called by orb tap in captured state
-let convListenGen = 0;        // incremented each convListen() call; guards stale onend/onerror
+let convRecognizerToken = null; // new object per convListen() and at each invalidation site; guards stale onend/onerror
 const cmdHistory = [];        // terminal-style input history
 let cmdHistoryIdx = -1;       // current position walking history; -1 = live input
 let cmdHistoryDraft = "";     // saves in-progress text when walking back
@@ -7144,6 +7147,7 @@ editModalConfirmMove.addEventListener("click", () => {
 let convBtnJournalTimer = null;
 
 convBtn.addEventListener("pointerdown", e => {
+  if (!VOICE_LOGIC_OK) { e.preventDefault(); showToast(t("voice.reload-needed")); return; }
   if (!hasSpeechRecognition() && !useWhisper()) return;
   e.preventDefault();
   try { convBtn.setPointerCapture(e.pointerId); } catch {}
@@ -7238,6 +7242,7 @@ convBtn.addEventListener("keydown", e => {
   e.preventDefault();
   if (!convMode) {
     enterConvMode();
+    if (!convMode) return;
     if (!journalDictating) {
       if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
       else convListen();
@@ -7255,6 +7260,7 @@ convResetCtxBtn.addEventListener("click", () => {
 convMuteBtn.addEventListener("click", toggleMute);
 
 function enterConvMode() {
+  if (!VOICE_LOGIC_OK) { showToast(t("voice.reload-needed")); return; }
   if (!hasSpeechRecognition() && !useWhisper()) return;
   // First Auto-mode voice session: let the user choose where their audio goes
   // before any is captured. Returns true only when it took over this attempt.
@@ -7307,7 +7313,7 @@ function exitConvMode() {
   clearAutoSend();
   if (convChatAbort)  { convChatAbort.abort();  convChatAbort  = null; }
   if (convSpeakAbort) { convSpeakAbort.abort(); convSpeakAbort = null; }
-  whisperResultGen++;
+  currentTranscription = {};
   // Cancel in-flight /transcribe fetch so token billing stops on exit.
   if (whisperTranscribeAbort) {
     try { whisperTranscribeAbort.abort(); } catch {}
@@ -7430,7 +7436,7 @@ function toggleMute() {
     //   large silent prefix; also gives a fresh WebM header for the new recording.
     // Rule 1 (revised): mute = retroactive drop of the current utterance.
     // In-flight turns whose silence timeout already elapsed are NOT cancelled —
-    // that speech is "done" and bumping whisperResultGen would cancel randomly
+    // that speech is "done" and replacing the transcription token would cancel randomly
     // based on network timing. Journal PTT is excluded (user controls stop explicitly).
     if (whisperRecorder && !journalDictating && convState === "listening") {
       restartWhisperRecorder();
@@ -7453,7 +7459,7 @@ let whisperRecorder     = null;
 let whisperStream       = null;   // persistent mic stream — held open across turns to avoid per-turn getUserMedia latency
 let whisperChunks       = [];
 let _iosMicPreAcquire   = null;   // Promise<MediaStream> — pre-acquired at pointerdown on iOS (pointerup is not trusted for getUserMedia)
-let whisperResultGen    = 0;           // increment to cancel any in-flight handleWhisperResult
+let currentTranscription = {};         // replaced to cancel any in-flight handleWhisperResult
 let convChatAbort  = null;             // AbortController for in-flight /chat fetch
 let convSpeakAbort = null;             // AbortController for in-flight /speak fetch
 
@@ -7465,8 +7471,8 @@ function hardStopConv() {
     try { whisperTranscribeAbort.abort(); } catch {}
     whisperTranscribeAbort = null;
   }
-  whisperResultGen++;
-  convListenGen++;  // invalidate any pending onend/onerror so recognition doesn't auto-restart
+  currentTranscription = {};
+  convRecognizerToken = {};  // invalidate any pending onend/onerror so recognition doesn't auto-restart
   if (orbPressTimer)   { clearTimeout(orbPressTimer);   orbPressTimer   = null; }
   if (orbJournalTimer) { clearTimeout(orbJournalTimer); orbJournalTimer = null; }
   orbPttActive = false;
@@ -7676,16 +7682,9 @@ function stopThinkingSound() {
 
 function setConvState(state) {
   convState = state;
-  convOrb.className = `conv-orb ${state}${journalDictating ? " journal" : ""}`;
-  const labels = {
-    idle: t("conv.label.idle"),
-    listening: journalDictating ? t("conv.label.recording") : t("conv.label.listening"),
-    thinking: t("conv.label.thinking"),
-    speaking: t("conv.label.speaking"),
-    paused: journalDictating ? (journalChunks.length === 0 ? t("conv.label.hold-to-record") : t("conv.label.chunks-ready")) : t("conv.label.paused"),
-    captured: convMuted ? t("conv.label.muted") : t("conv.label.captured"),
-  };
-  convLabel.textContent = labels[state] || "";
+  convOrb.className = VoiceLogic.orbClassFor({ phase: state, journal: journalDictating });
+  const labelKey = VoiceLogic.convLabelKeyFor({ phase: state, journal: journalDictating, muted: convMuted, chunks: journalChunks.length });
+  convLabel.textContent = labelKey ? t(labelKey) : "";
   // Note: transcript is NOT wiped on every transition. It's wiped only when a
   // fresh listening cycle begins (top of convListen and startWhisperPTT) so the
   // user can see "what was heard" persist through thinking → speaking → next listen.
@@ -7738,7 +7737,7 @@ function setJournalMode(on) {
     journalChunks = [];
     journalChunkListEl.innerHTML = "";
     convFinishBtn.disabled = true;
-    convListenGen++; // invalidate any pending convListen onerror/onend callbacks
+    convRecognizerToken = {}; // invalidate any pending convListen onerror/onend callbacks
     stopConvRecognition();
     convDiscardBtn.classList.remove("invisible");
     convDiscardBtn.disabled = true;
@@ -7769,7 +7768,7 @@ function convListen() {
   stopConvRecognition();
   convDiscardBtn.disabled = true;
   noSpeechCount = 0;
-  const myGen = ++convListenGen;
+  const myToken = convRecognizerToken = {};
 
   // Fresh listening cycle — wipe the previous "what was heard" text so the
   // new utterance starts on a blank canvas.
@@ -7805,49 +7804,45 @@ function convListen() {
   // truncates real utterances. Whisper mode gets around this with a 1500ms
   // silence detector; auto mode never had an equivalent.
   //
-  // Solution: accumulate finals into pendingFinals and debounce the dispatch.
-  // Each new final resets a 500ms timer; only when 500ms elapses with no new
+  // Solution: accumulate finals in `pending` and debounce the dispatch.
+  // Each new final resets a 700ms timer; only when 700ms elapses with no new
   // finals do we send the joined text. This gives Chrome's "eager finalize"
   // behavior room to be wrong (subsequent finals append seamlessly) while
   // still feeling responsive on short utterances.
   //
-  // The `dispatched` latch protects against post-stop() queue drains (the
-  // "how" + "how old is Marcy" double-dispatch bug); once we send, any further
-  // finals from this recognition object are ignored.
-  let dispatched = false;
-  let pendingFinals = [];
+  // The `dispatched` latch (inside VoiceLogic.createPendingFinals) protects
+  // against post-stop() queue drains (the "how" + "how old is Marcy"
+  // double-dispatch bug); once we send, any further finals from this
+  // recognition object are ignored.
+  const pending = VoiceLogic.createPendingFinals();
   let pendingTimer = null;
   // 700ms is the empirical sweet spot: long enough to bridge typical
   // mid-sentence pauses ("tell me [pause] about cohen"), short enough that
   // a single-word answer ("yes", "save it") doesn't feel sluggish. Whisper
-  // mode uses 1500ms silence detection; we run faster here because Auto
+  // mode uses 900ms silence detection; we run faster here because Auto
   // already has the browser's per-segment finalization doing some of the work.
   const SEND_DEBOUNCE_MS = 700;
 
   const dispatchPending = () => {
     pendingTimer = null;
-    if (!convMode || convListenGen !== myGen || dispatched) return;
-    if (!pendingFinals.length || convMuted) { pendingFinals = []; return; }
-    dispatched = true;
-    const text = pendingFinals.join(" ").replace(/\s+/g, " ").trim();
-    pendingFinals = [];
-    convTranscriptEl.textContent = text;
+    if (!convMode || convRecognizerToken !== myToken) return;
+    const r = pending.onTimer(convMuted);
+    if (r.action !== "dispatch") return;
+    convTranscriptEl.textContent = r.text;
     stopConvRecognition();
     setConvState("thinking");
-    sendMessage(text, true);
+    sendMessage(r.text, true);
   };
 
   convRecognition.onresult = e => {
-    if (!convMode || convListenGen !== myGen || dispatched) return;
+    if (!convMode || convRecognizerToken !== myToken || pending.dispatched) return;
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (!e.results[i].isFinal) continue;
-      const text = e.results[i][0].transcript.trim();
-      if (!text || convMuted) continue; // mute gate — drop finals while muted
-      pendingFinals.push(text);
+      pending.add(e.results[i][0].transcript, convMuted); // mute gate — drop finals while muted
     }
-    if (!pendingFinals.length) return;
+    if (!pending.size) return;
     // Update display with the running merged text and restart the debounce timer.
-    convTranscriptEl.textContent = pendingFinals.join(" ").replace(/\s+/g, " ").trim();
+    convTranscriptEl.textContent = pending.merged();
     if (pendingTimer) clearTimeout(pendingTimer);
     pendingTimer = setTimeout(dispatchPending, SEND_DEBOUNCE_MS);
   };
@@ -7861,13 +7856,13 @@ function convListen() {
   };
 
   convRecognition.onend = () => {
-    if (!convMode || convListenGen !== myGen) return;
+    if (!convMode || convRecognizerToken !== myToken) return;
     // If recognition ended while we have queued finals waiting on the debounce
     // timer, dispatch them now. Without this, the convListen() restart below
-    // would bump convListenGen and the old timer's dispatch would fail its
-    // gen check, silently losing the user's speech. Defense in depth even
+    // would replace the recogniser token and the old timer's dispatch would fail its
+    // token check, silently losing the user's speech. Defense in depth even
     // with interimResults=false (the previous trigger of mid-utterance ends).
-    if (pendingFinals.length && !dispatched && !convMuted) {
+    if (pending.shouldFlushOnEnd(convMuted)) {
       if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
       dispatchPending();
       return;
@@ -7877,7 +7872,7 @@ function convListen() {
   };
 
   convRecognition.onerror = e => {
-    if (!convMode || convListenGen !== myGen) return;
+    if (!convMode || convRecognizerToken !== myToken) return;
     if (e.error === "no-speech") {
       if (journalDictating) {
         noSpeechCount++;
@@ -8035,13 +8030,13 @@ let pttRecognition = null;
 let pttTranscript = "";     // full accumulated text for current hold
 let pttHoldText = "";       // carry-forward across mid-hold restarts (mobile only)
 let pttRestarting = false;  // true when restarting within the same hold
-let pttGen = 0;
+let pttToken = null;
 let pttRestartTimer = null; // single tracked timer — prevents double-fire duplication
 
 function convPttListen() {
   if (!convMode || !journalDictating) return;
-  // Increment gen BEFORE abort so any synchronous onend from abort() sees pttGen !== myGen and exits
-  const myGen = ++pttGen;
+  // Replace the token BEFORE abort so any synchronous onend from abort() sees a stale token and exits
+  const myToken = pttToken = {};
   if (pttRestartTimer) { clearTimeout(pttRestartTimer); pttRestartTimer = null; }
   stopConvRecognition();
   if (pttRecognition) { try { pttRecognition.abort(); } catch {} pttRecognition = null; }
@@ -8072,29 +8067,21 @@ function convPttListen() {
   let sessionFinalIdx = 0;
 
   pttRecognition.onresult = e => {
-    if (pttGen !== myGen) return;
+    if (pttToken !== myToken) return;
     const elapsed = Date.now() - startedAt;
-    for (let i = sessionFinalIdx; i < e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        if (elapsed >= ECHO_GUARD_MS) {
-          sessionFinal += (sessionFinal ? " " : "") + e.results[i][0].transcript.trim();
-        }
-        sessionFinalIdx = i + 1;
-      }
-    }
-    let interim = "";
-    for (let i = sessionFinalIdx; i < e.results.length; i++) {
-      interim += e.results[i][0].transcript;
-    }
-    pttTranscript = pttHoldText + (pttHoldText && sessionFinal ? " " : "") + sessionFinal;
-    setPttText([pttTranscript, interim].filter(Boolean).join(" "));
+    const results = Array.from(e.results, r => ({ isFinal: r.isFinal, transcript: r[0].transcript }));
+    const next = VoiceLogic.pttApplyResults({ sessionFinal, sessionFinalIdx }, results, elapsed, ECHO_GUARD_MS);
+    sessionFinal = next.sessionFinal;
+    sessionFinalIdx = next.sessionFinalIdx;
+    pttTranscript = VoiceLogic.pttJoin(pttHoldText, sessionFinal);
+    setPttText([pttTranscript, next.interim].filter(Boolean).join(" "));
   };
 
   const onStop = () => {
-    if (pttGen !== myGen) return;
+    if (pttToken !== myToken) return;
     pttRecognition = null;
     if (!convMode) return;
-    pttTranscript = pttHoldText + (pttHoldText && sessionFinal ? " " : "") + sessionFinal;
+    pttTranscript = VoiceLogic.pttJoin(pttHoldText, sessionFinal);
 
     if (orbPttActive) {
       // Session ended mid-hold (mobile silence timeout, iOS quirk, or unexpected continuous=true end).
@@ -8382,7 +8369,7 @@ async function transcribeAudio(blob) {
 }
 
 async function handleWhisperResult(blob) {
-  const myGen = whisperResultGen;
+  const myToken = currentTranscription;
   const fallback = journalDictating ? "paused" : "idle";
   if (!blob || blob.size < 500) { setConvState(fallback); return; }
   if (!journalDictating) {
@@ -8394,7 +8381,7 @@ async function handleWhisperResult(blob) {
   }
   try {
     const text = await transcribeAudio(blob);
-    if (whisperResultGen !== myGen) return; // cancelled by tap/journal-entry/mute
+    if (currentTranscription !== myToken) return; // cancelled by tap/journal-entry/mute
     if (!text) { setConvState(fallback); return; }
     if (journalDictating) {
       processWhisperChunk(text);
@@ -8406,7 +8393,7 @@ async function handleWhisperResult(blob) {
       sendMessage(text, true);
     }
   } catch (err) {
-    if (whisperResultGen !== myGen) return;
+    if (currentTranscription !== myToken) return;
     // Clear the "Transcribing…" placeholder: left in place it reads as still working.
     if (!journalDictating) convTranscriptEl.textContent = "";
     // A journal chunk can be minutes of dictation; never discard it on a refusal.

@@ -1,0 +1,79 @@
+[
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "orb",
+  "v": "conv-orb"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "label",
+  "v": "Tap to chat · Hold to journal"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "transcript",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "toast",
+  "v": ""
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "overlay",
+  "v": "hidden"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "mute",
+  "v": "live"
+ },
+ {
+  "t": 500,
+  "k": "pointerdown",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "pointerdown.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 500,
+  "k": "ui",
+  "f": "toast",
+  "v": "Voice mode needs a refresh — reload the page."
+ },
+ {
+  "t": 500,
+  "k": "touchstart",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "pointerup",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "pointerup.end",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "touchend",
+  "el": "conv-btn"
+ },
+ {
+  "t": 600,
+  "k": "click",
+  "el": "conv-btn"
+ }
+]
