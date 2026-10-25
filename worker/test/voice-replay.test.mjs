@@ -364,8 +364,10 @@ scenario("iphone-mute-while-transcribing", IPH, async (app) => {
   assert.equal(app.counts["/chat"] || 0, 0, "cancelled: nothing sent to Claude");
   const c = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
   const ce = app.trace.findIndex(e => e.k === "click.end" && e.el === "conv-mute");
-  assert.ok(app.trace.slice(c, ce).some(e => e.k === "getUserMedia"), "iOS: the mic is re-requested inside the tap");
+  assert.ok(c >= 0 && ce > c);
+  assert.equal(app.trace.slice(c).filter(e => e.k === "getUserMedia" || e.k === "recorder.new").length, 0, "iPhone: muted means the mic stays off (no indicator) until unmute");
   assert.ok(app.trace.some(e => e.k === "ui" && e.f === "transcript" && e.v === "Muted — not sent"), "the cancelled sentence says so");
+  assert.ok(app.trace.some(e => e.k === "ui" && e.f === "label" && /Muted — tap/.test(e.v)), "waits on the muted label");
 });
 
 scenario("iphone-mute-thinking-reply-unmute", IPH, async (app) => {
@@ -373,7 +375,11 @@ scenario("iphone-mute-thinking-reply-unmute", IPH, async (app) => {
   await until(app, e => e.k === "fetch" && e.path === "/chat");
   await app.click("conv-mute"); await app.advance(5000);
   await app.clickMarked("conv-mute"); await app.advance(1000);
+  const firstClick = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
   const lastClick = app.trace.findLastIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.equal(app.trace.slice(firstClick, lastClick).filter(e => e.k === "getUserMedia" || e.k === "recorder.new").length, 0, "iPhone: no mic is opened after the reply while muted");
+  const lastEnd = app.trace.findLastIndex(e => e.k === "click.end" && e.el === "conv-mute");
+  assert.ok(app.trace.slice(lastClick, lastEnd).some(e => e.k === "getUserMedia"), "unmute opens the mic inside the tap (iOS gesture rule)");
   assert.ok(app.trace.slice(lastClick).some(e => e.k === "recorder.new"), "unmute after a turn on iPhone starts listening");
 });
 
@@ -419,6 +425,7 @@ scenario("iphone-tap-to-hear-then-hard-stop", IOS_INTERRUPT, async (app) => {
   await app.press("conv-orb"); await app.advance(2000);
   assert.ok(tapBtn(app).classList.contains("hidden"), "a hard stop removes the offer");
   assert.equal(app.trace.filter(e => e.k === "audio.play").length, 0);
+  assert.ok(reasonEl(app).classList.contains("hidden"), "the diagnostic line goes with it");
 });
 
 // Real iPhones (2026-10-24): the thinking chime was inaudible and only its tail
@@ -431,4 +438,54 @@ scenario("iphone-thinking-chime-on-speaker", { ...IPH, fakes: { audioSession: tr
   const thinkingAt = app.trace.findIndex(e => e.k === "ui" && e.f === "label" && /Thinking/.test(e.v));
   const types = app.trace.slice(0, thinkingAt).filter(e => e.k === "audioSession.type").map(e => e.v);
   assert.equal(types[types.length - 1], "playback", "the session is on the speaker (playback) before the thinking chime starts");
+});
+
+// Review 2026-10-25: since v1.9.2 the lock aborts an in-flight transcription,
+// and a journal chunk aborted that way was dropped silently. Never lose dictation.
+scenario("journal-whisper-lock-during-transcribe-keeps-recording", { ...W, storage: { whoszoo_timeout: "1" }, fakes: { latencyMs: { "/transcribe": 130000 } } }, async (app) => {
+  await app.press("conv-btn", 900); await app.advance(200);   // hold → journal
+  app.down("conv-orb"); await app.say(2000); app.up("conv-orb");
+  await app.advance(200000);                                  // lock at ~120 s, mid-transcription
+  assert.ok(app.trace.some(e => e.k === "system" && /couldn't be transcribed, so it has been kept/.test(e.v)), "the aborted journal chunk is kept for download");
+});
+
+// ---- Review follow-ups (v1.9.7) ----
+// iPhone: muting releases the mic completely (no orange indicator); unmute is a
+// tap, which is exactly where iOS allows getUserMedia.
+scenario("iphone-mute-while-listening-releases-mic", IPH, async (app) => {
+  await app.press("conv-btn"); await app.advance(300);
+  await app.click("conv-mute"); await app.advance(2000);
+  const muteAt = app.trace.findIndex(e => e.k === "click" && e.el === "conv-mute");
+  assert.ok(app.trace.slice(muteAt).some(e => e.k === "track.stop"), "the mic track is stopped while muted");
+  await app.clickMarked("conv-mute"); await app.advance(500);
+  const c = app.trace.findLastIndex(e => e.k === "click" && e.el === "conv-mute");
+  const ce = app.trace.findLastIndex(e => e.k === "click.end" && e.el === "conv-mute");
+  assert.ok(app.trace.slice(c, ce).some(e => e.k === "getUserMedia"), "unmute re-opens the mic inside the tap");
+  assert.ok(app.trace.slice(c).some(e => e.k === "recorder.new"), "and listens again");
+});
+
+// iPhone: leaving voice mode hands the audio session back (silent switch, other apps' audio).
+scenario("iphone-exit-resets-audio-session", { ...IPH, fakes: { audioSession: true } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(300);
+  await app.click("conv-exit"); await app.advance(300);
+  const types = app.trace.filter(e => e.k === "audioSession.type").map(e => e.v);
+  assert.equal(types[types.length - 1], "auto", "exit restores the default audio session");
+});
+
+scenario("iphone-lock-resets-audio-session", { ...IPH, storage: { whoszoo_timeout: "1" }, fakes: { audioSession: true } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(300);
+  await app.advance(130000);
+  const types = app.trace.filter(e => e.k === "audioSession.type").map(e => e.v);
+  assert.equal(types[types.length - 1], "auto", "the lock restores the default audio session");
+});
+
+// Journal chunks recorded before an auto-lock are offered back after unlock.
+scenario("journal-draft-offered-after-lock", { ...W, storage: { whoszoo_timeout: "1" } }, async (app) => {
+  await app.press("conv-btn", 900); await app.advance(200);
+  app.down("conv-orb"); await app.say(2000); app.up("conv-orb");
+  await app.advance(3000);                       // chunk transcribed and saved as a draft
+  await app.advance(130000);                     // auto-lock
+  app.w.eval("offerJournalDraftRestore()");      // what both unlock paths now call on resume
+  await app.advance(100);
+  assert.ok(app.trace.some(e => e.k === "system" && /journal session from .* was interrupted/i.test(e.v)), "restore offered after the lock");
 });

@@ -202,14 +202,6 @@
  },
  {
   "t": 3500,
-  "k": "browserVoice.cancel"
- },
- {
-  "t": 3500,
-  "k": "getUserMedia"
- },
- {
-  "t": 3500,
   "k": "click.end",
   "el": "conv-mute"
  },
@@ -236,30 +228,5 @@
   "k": "ui",
   "f": "mute",
   "v": "muted"
- },
- {
-  "t": 3500,
-  "k": "getUserMedia.resolved",
-  "stream": 2
- },
- {
-  "t": 3550,
-  "k": "recorder.new",
-  "stream": 2
- },
- {
-  "t": 3550,
-  "k": "recorder.start"
- },
- {
-  "t": 3550,
-  "k": "track.enabled",
-  "stream": 2,
-  "value": false
- },
- {
-  "t": 3550,
-  "k": "audioContext.new",
-  "ctx": 4
  }
 ]

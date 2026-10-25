@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.5
-const APP_VERSION = "1.9.5";
+// WhosZoo — Frontend App v1.9.7
+const APP_VERSION = "1.9.7";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -807,6 +807,7 @@ async function triggerBiometricUnlock(credId) {
     sessionStorage.removeItem("whoszoo_resume");
     if (isResume) {
       _lastActivity = Date.now();
+      offerJournalDraftRestore();
     } else {
       startSession(true);
     }
@@ -824,6 +825,42 @@ async function triggerBiometricUnlock(credId) {
     setTimeout(() => loginPassphraseEl.focus(), 100);
   } finally {
     _loginInProgress = false;
+  }
+}
+
+// Offer to restore a suspended journal session. Called at session start and,
+// since v1.9.7, on unlock too: the resume path skips startSession, so chunks
+// recorded before an auto-lock were otherwise never offered back.
+function offerJournalDraftRestore() {
+  const rawDraft = sessionStorage.getItem(JOURNAL_DRAFT_KEY);
+  if (rawDraft) {
+    try {
+      const draft = JSON.parse(rawDraft);
+      const ageMin = Math.round((Date.now() - draft.savedAt) / 60000);
+      const draftChunks = draft.chunks || (draft.messages || []).filter(m => m && m.role === "user").map(m => m.content);
+      if (draftChunks.length && ageMin < 60) {
+        const notice = appendMessage("system", `A journal session from ${ageMin} minute${ageMin !== 1 ? "s" : ""} ago was interrupted. Restore it?`);
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:10px;margin-top:10px;";
+        // .btn-primary / .btn-secondary both have width:100% (built for the
+        // login form). Override with width:auto and flex:2/flex:1 so they
+        // share the row proportionally — same pattern as the Edit Record
+        // footer. Without this, Restore fills the row and Discard wraps to
+        // two lines ("Disca / rd").
+        const yes = document.createElement("button");
+        yes.className = "btn-primary";
+        yes.style.cssText = "flex:2;width:auto;font-size:15px;padding:12px 16px;";
+        yes.textContent = "Restore session";
+        const no = document.createElement("button");
+        no.className = "btn-secondary";
+        no.style.cssText = "flex:1;width:auto;font-size:15px;padding:12px 16px;white-space:nowrap;";
+        no.textContent = "Discard";
+        yes.addEventListener("click", () => { journalChunks = draftChunks.slice(); journalDictating = true; clearJournalDraft(); notice.remove(); appendMessage("system", "Journal session restored — open conversation mode to continue."); });
+        no.addEventListener("click", () => { clearJournalDraft(); notice.remove(); });
+        row.append(yes, no);
+        notice.appendChild(row);
+      }
+    } catch { sessionStorage.removeItem(JOURNAL_DRAFT_KEY); }
   }
 }
 
@@ -847,6 +884,7 @@ function lockApp() {
   whisperStartToken = {};
   clearTapToHear();
   if (convMode) {
+    if (isIOS() && navigator.audioSession) { try { navigator.audioSession.type = "auto"; } catch {} }
     stopConvAudio();
     stopThinkingSound();
     if (thinkingAudioCtx) { try { thinkingAudioCtx.close(); } catch {} thinkingAudioCtx = null; }
@@ -993,6 +1031,7 @@ async function doLogin() {
     if (isResume) {
       // Conversation is still in memory — just restore activity timer
       _lastActivity = Date.now();
+      offerJournalDraftRestore();
     } else {
       startSession(true);
     }
@@ -1577,37 +1616,7 @@ async function startSession(skipLoading = false) {
       offerMsg.append(row);
     }
 
-    // Offer to restore a suspended journal session
-    const rawDraft = sessionStorage.getItem(JOURNAL_DRAFT_KEY);
-    if (rawDraft) {
-      try {
-        const draft = JSON.parse(rawDraft);
-        const ageMin = Math.round((Date.now() - draft.savedAt) / 60000);
-        const draftChunks = draft.chunks || (draft.messages || []).filter(m => m && m.role === "user").map(m => m.content);
-        if (draftChunks.length && ageMin < 60) {
-          const notice = appendMessage("system", `A journal session from ${ageMin} minute${ageMin !== 1 ? "s" : ""} ago was interrupted. Restore it?`);
-          const row = document.createElement("div");
-          row.style.cssText = "display:flex;gap:10px;margin-top:10px;";
-          // .btn-primary / .btn-secondary both have width:100% (built for the
-          // login form). Override with width:auto and flex:2/flex:1 so they
-          // share the row proportionally — same pattern as the Edit Record
-          // footer. Without this, Restore fills the row and Discard wraps to
-          // two lines ("Disca / rd").
-          const yes = document.createElement("button");
-          yes.className = "btn-primary";
-          yes.style.cssText = "flex:2;width:auto;font-size:15px;padding:12px 16px;";
-          yes.textContent = "Restore session";
-          const no = document.createElement("button");
-          no.className = "btn-secondary";
-          no.style.cssText = "flex:1;width:auto;font-size:15px;padding:12px 16px;white-space:nowrap;";
-          no.textContent = "Discard";
-          yes.addEventListener("click", () => { journalChunks = draftChunks.slice(); journalDictating = true; clearJournalDraft(); notice.remove(); appendMessage("system", "Journal session restored — open conversation mode to continue."); });
-          no.addEventListener("click", () => { clearJournalDraft(); notice.remove(); });
-          row.append(yes, no);
-          notice.appendChild(row);
-        }
-      } catch { sessionStorage.removeItem(JOURNAL_DRAFT_KEY); }
-    }
+    offerJournalDraftRestore();
     shouldShowWelcomeCard().then(show => { if (show) showWelcomeCard(); });
     // Only offered once the user is actually in — beforeinstallprompt often
     // fires while the login screen is still up, and prompting someone who
@@ -4260,10 +4269,10 @@ function showWelcomeCard() {
 // Capturing the event lets us offer installing inside the app instead of
 // leaving it buried in the browser's ⋮ menu.
 //
-// There is deliberately no iOS/Safari path: WebKit has no equivalent API, so
-// a prompt simply cannot be triggered there. Anything claiming to be an
-// install prompt on Safari is a hand-written "tap Share → Add to Home Screen"
-// overlay. We decided not to build one, so on Safari nothing shows at all.
+// iOS (every iPhone browser is WebKit) has no equivalent API, so a prompt
+// cannot be triggered there. Since v1.9.6 the same banner shows the manual
+// "tap Share → Add to Home Screen" steps instead, with no Install button
+// (Hans's call, 2026-10-25 — earlier we chose to show nothing on iOS).
 const INSTALL_DISMISSED_KEY = "whoszoo_install_dismissed";
 let _installPromptEvent = null;
 let _installBannerEl = null;
@@ -4286,8 +4295,10 @@ function dismissInstallBanner(remember) {
 function showInstallBanner() {
   if (_installBannerEl) return;
   // No stashed event means Chromium either hasn't fired yet or considers the
-  // app ineligible (or this isn't Chromium at all). Nothing to offer.
-  if (!_installPromptEvent) return;
+  // app ineligible (or this isn't Chromium at all). Nothing to offer — except
+  // on iOS, where the manual steps are the only way to install.
+  const iosSteps = isIOS();
+  if (!_installPromptEvent && !iosSteps) return;
   if (appIsInstalled()) return;
   if (chatScreen.classList.contains("hidden")) return;
   try { if (localStorage.getItem(INSTALL_DISMISSED_KEY)) return; } catch {}
@@ -4297,9 +4308,10 @@ function showInstallBanner() {
 
   const textEl = document.createElement("span");
   textEl.className = "install-banner-text";
-  textEl.textContent = t("install.banner");
+  textEl.textContent = iosSteps ? t("install.ios-steps") : t("install.banner");
   bar.appendChild(textEl);
 
+  if (!iosSteps) {
   const btn = document.createElement("button");
   btn.className = "install-banner-btn";
   btn.textContent = t("install.btn");
@@ -4319,6 +4331,7 @@ function showInstallBanner() {
     dismissInstallBanner(false);
   });
   bar.appendChild(btn);
+  }
 
   const close = document.createElement("button");
   close.className = "install-banner-dismiss";
@@ -4350,12 +4363,6 @@ function refreshInstallRow() {
   const row = document.getElementById("panel-install");
   if (!row) return;
   row.classList.remove("settings-action-row-unavailable");
-  if (isIOS()) {
-    // Nothing to offer: WebKit has no install-prompt API at all, and
-    // Help & docs already has the manual Share -> Add to Home Screen steps.
-    row.style.display = "none";
-    return;
-  }
   if (appIsInstalled()) {
     row.style.display = "";
     row.classList.add("settings-action-row-unavailable");
@@ -4371,6 +4378,9 @@ function refreshInstallRow() {
 
 document.getElementById("panel-install").addEventListener("click", async () => {
   try { localStorage.removeItem(INSTALL_DISMISSED_KEY); } catch {}
+  // iOS can't prompt: show the manual steps (the row is the way back to them
+  // after the banner was dismissed).
+  if (isIOS()) { if (!appIsInstalled()) showToast(t("install.ios-steps"), { long: true }); return; }
   const evt = _installPromptEvent;
   if (!evt) {
     // Most likely cause: this page load hasn't received beforeinstallprompt
@@ -7324,6 +7334,8 @@ function clearAutoSend() {
 
 function exitConvMode() {
   clearAutoSend();
+  // iOS: hand the audio session back (silent switch, other apps' audio).
+  if (isIOS() && navigator.audioSession) { try { navigator.audioSession.type = "auto"; } catch {} }
   if (convChatAbort)  { convChatAbort.abort();  convChatAbort  = null; }
   if (convSpeakAbort) { convSpeakAbort.abort(); convSpeakAbort = null; }
   currentTranscription = {};
@@ -7450,6 +7462,7 @@ function toggleMute() {
     transcribing: whisperTranscribeAbort !== null,
     hasRecorder: whisperRecorder !== null,
     hasStream: whisperStream !== null,
+    releaseWhileMuted: isIOS(),
   });
   // Synchronous on purpose: resumeListening must reach getUserMedia inside
   // this tap, or iOS refuses the mic.
@@ -7470,6 +7483,8 @@ function toggleMute() {
       if (convTranscriptEl.textContent.trim()) cancelled = true; // half-heard words are dropped: say so
     }
     else if (a === "startRecognizer") convListen();
+    else if (a === "releaseMic") releaseWhisperMic();
+    else if (a === "waitMuted") setConvState("listening");
   }
   if (cancelled) convTranscriptEl.textContent = t("conv.transcript.muted-not-sent");
   renderConvState();
@@ -7806,8 +7821,25 @@ function fireStillThere() {
 function resumeConvListening() {
   speakToken = {}; // a new listen claims the turn: a reply still finishing must not set idle over it
   clearTapToHear();
-  if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
+  if (useWhisper()) {
+    // iPhone, muted: wait without a mic (no indicator); unmute opens it in the tap.
+    if (isIOS() && convMuted && !journalDictating) { setConvState("listening"); return; }
+    orbPttActive = true; startWhisperPTT();
+  }
   else convListen();
+}
+
+// iPhone mute: drop the utterance and release the mic entirely.
+function releaseWhisperMic() {
+  stopSilenceDetection(true);
+  if (whisperRecorder) {
+    const r = whisperRecorder;
+    r.ondataavailable = null; r.onstop = null; // never transcribe what was said while muting
+    try { r.stop(); } catch {}
+    whisperRecorder = null; whisperChunks = [];
+  }
+  if (whisperStream) { try { whisperStream.getTracks().forEach(t => t.stop()); } catch {} whisperStream = null; }
+  orbPttActive = false;
 }
 
 function convListen() {
@@ -8348,6 +8380,14 @@ async function startWhisperPTT() {
         if (!orbPttActive) convLabel.classList.remove("conv-label--starting");
         return;
       }
+      if (isIOS() && convMuted && !journalDictating) {
+        // Muted while the mic was being granted: don't keep it (no indicator).
+        stream.getTracks().forEach(t => t.stop());
+        if (whisperStream === stream) whisperStream = null;
+        orbPttActive = false;
+        setConvState("listening");
+        return;
+      }
       if (journalDictating) {
         // Journal keeps its v1.9.2 label here; journal changes are a later stage.
         convLabel.classList.remove("conv-label--starting");
@@ -8447,6 +8487,7 @@ async function transcribeAudio(blob) {
 
 async function handleWhisperResult(blob) {
   const myToken = currentTranscription;
+  const wasJournal = journalDictating; // the lock clears journalDictating before this catch runs
   const fallback = journalDictating ? "paused" : "idle";
   if (!blob || blob.size < 500) { setConvState(fallback); return; }
   if (!journalDictating) {
@@ -8470,7 +8511,12 @@ async function handleWhisperResult(blob) {
       sendMessage(text, true);
     }
   } catch (err) {
-    if (currentTranscription !== myToken) return;
+    if (currentTranscription !== myToken) {
+      // Cancelled by the lock, exit or a hard stop. A journal chunk can be
+      // minutes of dictation: keep it rather than drop it with the turn.
+      if (wasJournal) keepFailedRecording(blob);
+      return;
+    }
     // Clear the "Transcribing…" placeholder: left in place it reads as still working.
     if (!journalDictating) convTranscriptEl.textContent = "";
     // A journal chunk can be minutes of dictation; never discard it on a refusal.
@@ -8656,6 +8702,7 @@ function setAudioReason(text) {
   convAudioReasonEl.classList.toggle("hidden", !text);
 }
 function clearTapToHear() {
+  setAudioReason("");
   if (!tapToHear) return;
   const p = tapToHear; tapToHear = null;
   convTapToHearBtn.classList.add("hidden");
@@ -8683,6 +8730,7 @@ convTapToHearBtn.addEventListener("click", () => {
     if (settled) return; settled = true;
     if (convAudio === a) convAudio = null;
     try { URL.revokeObjectURL(p.url); } catch {}
+    setAudioReason("");
     p.resolve(true);
   };
   a.onended = done; a.onerror = done;
@@ -9709,11 +9757,15 @@ function maybeShowVoicePrivacyNotice() {
 }
 
 let toastTimer;
-function showToast(msg) {
+// { long: true } wraps the text and keeps it up longer — for instructions
+// that a one-line toast would clip on a phone.
+function showToast(msg, opts) {
+  const long = !!(opts && opts.long);
   toast.textContent = msg;
+  toast.classList.toggle("toast-long", long);
   toast.classList.remove("hidden");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.add("hidden"), 3500);
+  toastTimer = setTimeout(() => toast.classList.add("hidden"), long ? 8000 : 3500);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

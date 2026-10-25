@@ -164,5 +164,14 @@
     "/chat": 1,
     "/speak": 1,
     "/transcribe": 1
+  },
+  "journal-whisper-lock-during-transcribe-keeps-recording": {
+    "/transcribe": 1
+  },
+  "iphone-mute-while-listening-releases-mic": {},
+  "iphone-exit-resets-audio-session": {},
+  "iphone-lock-resets-audio-session": {},
+  "journal-draft-offered-after-lock": {
+    "/transcribe": 1
   }
 }

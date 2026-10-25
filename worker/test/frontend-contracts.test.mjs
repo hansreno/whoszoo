@@ -429,3 +429,10 @@ test("stale-callback guards are session tokens, not generation counters (voice s
   assert.match(appCode, /const myToken = pttToken = \{\};/);
   assert.match(appCode, /const myToken = convRecognizerToken = \{\};/);
 });
+
+test("both unlock paths offer an interrupted journal draft back on resume", () => {
+  assert.match(appCode, /function offerJournalDraftRestore\(\)/);
+  const resumes = appCode.match(/if \(isResume\) \{[^}]*\}/g) || [];
+  assert.equal(resumes.length, 2, "two resume branches (passphrase and biometric)");
+  for (const r of resumes) assert.match(r, /offerJournalDraftRestore\(\)/);
+});

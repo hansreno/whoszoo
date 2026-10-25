@@ -380,6 +380,7 @@ const LOCALES = {
     "tooltip.dismiss":         "Dismiss",
     "install.banner":          "Add WhosWhoZoo to your home screen for quicker access.",
     "install.btn":             "Install",
+    "install.ios-steps":       "To install: tap Share, then “Add to Home Screen”.",
     "tooltip.audit-ignore":    "Won't show in future audits.",
     "tooltip.skip-suggest":    "Never suggest again",
     "tooltip.delete-chunk":    "Delete this chunk",
@@ -787,6 +788,7 @@ const LOCALES = {
     "tooltip.dismiss":         "Descartar", // needs-review
     "install.banner":          "Añade WhosWhoZoo a tu pantalla de inicio para acceder más rápido.", // needs-review
     "install.btn":             "Instalar", // needs-review
+    "install.ios-steps":       "Para instalar: toca Compartir y luego «Añadir a pantalla de inicio».", // needs-review
     "tooltip.audit-ignore":    "No aparecerá en auditorías futuras.", // needs-review
     "tooltip.skip-suggest":    "No sugerir nunca más", // needs-review
     "tooltip.delete-chunk":    "Eliminar este fragmento", // needs-review
@@ -1194,6 +1196,7 @@ const LOCALES = {
     "tooltip.dismiss":         "Ignorer", // needs-review
     "install.banner":          "Ajoutez WhosWhoZoo à votre écran d'accueil pour y accéder plus vite.", // needs-review
     "install.btn":             "Installer", // needs-review
+    "install.ios-steps":       "Pour installer : touchez Partager, puis « Sur l'écran d'accueil ».", // needs-review
     "tooltip.audit-ignore":    "N'apparaîtra plus dans les futurs audits.", // needs-review
     "tooltip.skip-suggest":    "Ne plus jamais suggérer", // needs-review
     "tooltip.delete-chunk":    "Supprimer ce fragment", // needs-review
@@ -1601,6 +1604,7 @@ const LOCALES = {
     "tooltip.dismiss":         "खारिज करें", // needs-review
     "install.banner":          "तेज़ पहुंच के लिए WhosWhoZoo को अपनी होम स्क्रीन पर जोड़ें।", // needs-review
     "install.btn":             "इंस्टॉल करें", // needs-review
+    "install.ios-steps":       "इंस्टॉल करने के लिए: शेयर टैप करें, फिर “होम स्क्रीन पर जोड़ें”।", // needs-review
     "tooltip.audit-ignore":    "भविष्य के ऑडिट में नहीं दिखेगा।", // needs-review
     "tooltip.skip-suggest":    "फिर कभी न सुझाएँ", // needs-review
     "tooltip.delete-chunk":    "यह हिस्सा हटाएँ", // needs-review

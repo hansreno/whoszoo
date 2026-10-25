@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0a0f1e">
-  <link rel="stylesheet" href="style.css?v=1.9.5">
+  <link rel="stylesheet" href="style.css?v=1.9.7">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="locales.js?v=1.9.5"></script>
+  <script src="locales.js?v=1.9.7"></script>
 </head>
 <body>
 
@@ -59,13 +59,12 @@
                who suspects their key has leaked knows where to go. -->
           <p class="settings-action-note" data-i18n-html="settings.access-key-note">Access Key can be rotated at <a href='https://whoszoo.app/setup' target='_blank' rel='noopener'>whoszoo.app/setup</a></p>
           <button id="panel-biometric" class="settings-action-row">Set up fingerprint unlock <span class="settings-action-chevron">→</span></button>
-          <!-- Hidden by default; shown by showSettingsPanel() only when
-               beforeinstallprompt has ever fired in this session (Chromium)
-               or the app is already installed. iOS gets nothing here —
-               Help & docs already carries the manual Share → Add to Home
-               Screen steps, and there is no API to offer anything better. -->
+          <!-- Hidden by default; refreshInstallRow() shows it in Chromium
+               (one-tap install prompt), when the app is already installed,
+               and on iOS (v1.9.6), where it shows the manual Share → Add to
+               Home Screen steps because iOS has no install-prompt API. -->
           <button id="panel-install" class="settings-action-row" style="display:none;">Install to home screen <span class="settings-action-chevron">→</span></button>
-          <a href="help.html?from=settings&amp;v=1.9.5" class="settings-action-row"><span data-i18n="settings.btn-help">Help &amp; docs</span> <span class="settings-action-chevron">→</span></a>
+          <a href="help.html?from=settings&amp;v=1.9.7" class="settings-action-row"><span data-i18n="settings.btn-help">Help &amp; docs</span> <span class="settings-action-chevron">→</span></a>
           <!-- Shares the PRODUCT page, never this install. Every user runs their
                own copy at their own URL, so the only thing they can otherwise
                hand someone is their address bar — i.e. the login page to their
@@ -180,7 +179,7 @@
           <div class="installer-link-sub" data-i18n="install.get-sub">whoszoo.app — setup wizard, install guide, and how it works</div>
         </a>
       </div>
-      <a id="settings-help-link" href="help.html?from=app&amp;v=1.9.5" class="settings-help-link" style="margin-top:16px" data-i18n="setup.link-how">How does this work? →</a>
+      <a id="settings-help-link" href="help.html?from=app&amp;v=1.9.7" class="settings-help-link" style="margin-top:16px" data-i18n="setup.link-how">How does this work? →</a>
     </div>
   </div>
 
@@ -535,7 +534,7 @@
     <button id="photo-lightbox-next" class="photo-lightbox-nav photo-lightbox-next" aria-label="Next">&#x203a;</button>
   </div>
 
-  <script src="voice-logic.js?v=1.9.5"></script>
-  <script src="app.js?v=1.9.5"></script>
+  <script src="voice-logic.js?v=1.9.7"></script>
+  <script src="app.js?v=1.9.7"></script>
 </body>
 </html>

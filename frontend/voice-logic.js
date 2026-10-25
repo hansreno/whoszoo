@@ -75,10 +75,17 @@
 
   // Mute means nothing more goes out until unmute. Given the state at the tap
   // (with `muted` already the NEW value), return what toggleMute must do, in order.
-  function muteActions({ mode, phase, muted, transcribing, hasRecorder, hasStream }) {
+  // releaseWhileMuted (iPhone): muting releases the mic entirely, so the OS mic
+  // indicator goes off; unmute is a tap, where iOS allows getUserMedia again.
+  function muteActions({ mode, phase, muted, transcribing, hasRecorder, hasStream, releaseWhileMuted }) {
     if (mode === "auto") {
       if (phase !== "listening") return [];
       return [muted ? "stopRecognizer" : "startRecognizer"];
+    }
+    if (muted && releaseWhileMuted) {
+      if (transcribing) return ["cancelTranscription", "waitMuted"];
+      if (phase === "listening") return hasRecorder || hasStream ? ["releaseMic", "waitMuted"] : [];
+      return hasStream ? ["releaseMic"] : [];
     }
     const gate = hasStream ? ["gateTrack"] : [];
     if (muted && transcribing) return [...gate, "cancelTranscription", "resumeListening"];
@@ -87,7 +94,7 @@
     return gate;
   }
 
-  const api = { version: "1.9.5", pttApplyResults, pttJoin, createPendingFinals, orbClassFor, convLabelKeyFor, muteActions };
+  const api = { version: "1.9.7", pttApplyResults, pttJoin, createPendingFinals, orbClassFor, convLabelKeyFor, muteActions };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.VoiceLogic = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

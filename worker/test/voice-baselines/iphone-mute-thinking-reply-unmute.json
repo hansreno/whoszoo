@@ -238,57 +238,12 @@
  },
  {
   "t": 6000,
-  "k": "browserVoice.cancel"
- },
- {
-  "t": 6000,
-  "k": "getUserMedia"
- },
- {
-  "t": 6000,
   "k": "ui",
   "f": "orb",
   "v": "conv-orb listening muted"
  },
  {
   "t": 6000,
-  "k": "ui",
-  "f": "label",
-  "v": "Starting..."
- },
- {
-  "t": 6000,
-  "k": "ui",
-  "f": "transcript",
-  "v": ""
- },
- {
-  "t": 6000,
-  "k": "getUserMedia.resolved",
-  "stream": 2
- },
- {
-  "t": 6050,
-  "k": "recorder.new",
-  "stream": 2
- },
- {
-  "t": 6050,
-  "k": "recorder.start"
- },
- {
-  "t": 6050,
-  "k": "track.enabled",
-  "stream": 2,
-  "value": false
- },
- {
-  "t": 6050,
-  "k": "audioContext.new",
-  "ctx": 4
- },
- {
-  "t": 6050,
   "k": "ui",
   "f": "label",
   "v": "Muted — tap 🎤 to listen"
@@ -300,22 +255,11 @@
  },
  {
   "t": 8750,
-  "k": "track.enabled",
-  "stream": 2,
-  "value": true
+  "k": "browserVoice.cancel"
  },
  {
   "t": 8750,
-  "k": "recorder.stop"
- },
- {
-  "t": 8750,
-  "k": "recorder.new",
-  "stream": 2
- },
- {
-  "t": 8750,
-  "k": "recorder.start"
+  "k": "getUserMedia"
  },
  {
   "t": 8750,
@@ -337,7 +281,32 @@
  {
   "t": 8750,
   "k": "ui",
+  "f": "transcript",
+  "v": ""
+ },
+ {
+  "t": 8750,
+  "k": "ui",
   "f": "mute",
   "v": "live"
+ },
+ {
+  "t": 8750,
+  "k": "getUserMedia.resolved",
+  "stream": 2
+ },
+ {
+  "t": 8800,
+  "k": "recorder.new",
+  "stream": 2
+ },
+ {
+  "t": 8800,
+  "k": "recorder.start"
+ },
+ {
+  "t": 8800,
+  "k": "audioContext.new",
+  "ctx": 4
  }
 ]

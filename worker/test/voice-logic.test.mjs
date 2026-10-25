@@ -134,3 +134,17 @@ test("convLabelKeyFor shows the muted label while listening muted", () => {
   assert.equal(VoiceLogic.convLabelKeyFor({ phase: "listening", journal: true, muted: true, chunks: 0 }), "conv.label.recording");
   assert.equal(VoiceLogic.convLabelKeyFor({ phase: "listening", journal: false, muted: false, chunks: 0 }), "conv.label.listening");
 });
+
+const MI = (o) => VoiceLogic.muteActions({ mode: "whisper", phase: "listening", muted: true, transcribing: false, hasRecorder: true, hasStream: true, releaseWhileMuted: true, ...o });
+test("muteActions, iPhone muting while listening: release the mic and wait muted", () => {
+  assert.deepEqual(MI({}), ["releaseMic", "waitMuted"]);
+});
+test("muteActions, iPhone muting while transcribing: cancel and wait muted, no re-acquire", () => {
+  assert.deepEqual(MI({ phase: "thinking", transcribing: true, hasRecorder: false, hasStream: false }), ["cancelTranscription", "waitMuted"]);
+});
+test("muteActions, iPhone muting while speaking with a stream: release it", () => {
+  assert.deepEqual(MI({ phase: "speaking", hasRecorder: false }), ["releaseMic"]);
+});
+test("muteActions, iPhone unmuting while waiting muted (no mic): resume listening in the tap", () => {
+  assert.deepEqual(MI({ muted: false, hasRecorder: false, hasStream: false }), ["resumeListening"]);
+});
