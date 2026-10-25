@@ -489,3 +489,20 @@ scenario("journal-draft-offered-after-lock", { ...W, storage: { whoszoo_timeout:
   await app.advance(100);
   assert.ok(app.trace.some(e => e.k === "system" && /journal session from .* was interrupted/i.test(e.v)), "restore offered after the lock");
 });
+
+// ---- ElevenLabs runs out (v1.9.9): fall back to something that works ----
+const BRITTNEY = { whoszoo_voice: "brittney" };
+scenario("android-elevenlabs-credits-fallback-to-asteria", { ...W, storage: BRITTNEY, fakes: { routes: { "/speak": "fallback-credits" } } }, async (app) => {
+  await turn(app, 5000);
+  assert.ok(app.trace.some(e => e.k === "tts.play"), "the reply is still spoken (Asteria, via the worker)");
+  assert.ok(app.trace.some(e => e.k === "system" && /ElevenLabs credits are used up/.test(e.v)), "says why, in the chat");
+});
+
+scenario("iphone-elevenlabs-and-cloudflare-both-out", { ...IPH, storage: BRITTNEY, fakes: { routes: { "/speak": "credits-exhausted" } } }, async (app) => {
+  await turn(app, 5000);
+  assert.equal(app.trace.filter(e => e.k === "browserVoice.speak").length, 0, "iPhone: no silent device-voice attempt");
+  assert.ok(app.trace.some(e => e.k === "system" && /ElevenLabs credits are used up/.test(e.v)), "says why");
+  const speakAt = app.trace.findIndex(e => e.k === "fetch" && e.path === "/speak");
+  const nextRec = app.trace.findIndex((e, i) => i > speakAt && e.k === "recorder.new");
+  assert.ok(nextRec > speakAt && app.trace[nextRec].t - app.trace[speakAt].t < 2000, "back to listening quickly, not after a minute");
+});

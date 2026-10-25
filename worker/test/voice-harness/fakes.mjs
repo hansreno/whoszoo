@@ -221,9 +221,9 @@ export function installFakes(window, opts) {
 
   // ---- network ----
   const abortErr = () => new window.DOMException("The operation was aborted.", "AbortError");
-  const respond = (status, body, type = "application/json") => ({
+  const respond = (status, body, type = "application/json", extra = {}) => ({
     ok: status >= 200 && status < 300, status,
-    headers: { get: (k) => (k.toLowerCase() === "content-type" ? type : null) },
+    headers: { get: (k) => (k.toLowerCase() === "content-type" ? type : (extra[k.toLowerCase()] ?? null)) },
     json: async () => (typeof body === "string" ? JSON.parse(body) : body),
     text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
     arrayBuffer: async () => (body instanceof ArrayBuffer ? body : new ArrayBuffer(0)),
@@ -267,6 +267,10 @@ export function installFakes(window, opts) {
       if (mode === "error") return later(() => rej(new TypeError("Failed to fetch")));
       if (mode === "429") return later(() => res(respond(429, { ok: false, error: "voice_allowance_exhausted" })));
       if (mode === "503") return later(() => res(respond(503, { ok: false, error: "ai_not_configured" })));
+      // ElevenLabs out of credits: the worker re-voiced the reply with Aura-1 and says so.
+      if (mode === "fallback-credits") return later(() => res(respond(200, new ArrayBuffer(2000), "audio/mpeg", { "x-voice-fallback": "elevenlabs_credits" })));
+      // ElevenLabs out of credits and Cloudflare unavailable too.
+      if (mode === "credits-exhausted") return later(() => res(respond(502, { ok: false, error: "voice_credits_exhausted" })));
       switch (path) {
         case "/authStatus": return later(() => res(respond(200, { initialized: true })));
         case "/transcribe": return later(() => res(respond(200, { ok: true, text: cfg.transcript })));

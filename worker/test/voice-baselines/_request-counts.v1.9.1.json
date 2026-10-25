@@ -173,5 +173,15 @@
   "iphone-lock-resets-audio-session": {},
   "journal-draft-offered-after-lock": {
     "/transcribe": 1
+  },
+  "android-elevenlabs-credits-fallback-to-asteria": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "iphone-elevenlabs-and-cloudflare-both-out": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
   }
 }

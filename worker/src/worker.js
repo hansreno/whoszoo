@@ -11,7 +11,7 @@ import { buildStaticPrompt, buildDynamicPrompt } from "./system-prompt.js";
 // Reads/writes memory files from Cloudflare KV.
 // Calls Claude API server-side for chat.
 
-const WORKER_VERSION = "1.9.7";
+const WORKER_VERSION = "1.9.9";
 
 const MEMORY_FILES = ["people.md", "reflections.md", "fragments.md", "loops.md"];
 const ARCHIVE_FILES = ["archive_people.md", "archive_reflections.md", "archive_fragments.md", "archive_loops.md"];
@@ -238,6 +238,9 @@ export const VOICE = {
   auraMaxChars: 1900,
   elevenlabs: { brittney: "kPzsL2i3teMYv0FxEYQ6", callum: "N2lVS1w4EtoT3dr4eOWO" },
   elevenlabsModel: "eleven_flash_v2_5",
+  // When ElevenLabs refuses (credits used up, bad key, outage), the reply is
+  // re-voiced with the closest Aura-1 voice instead of failing (v1.9.9).
+  elevenlabsFallback: { brittney: "asteria", callum: "orion" },
   whisperModel: "@cf/openai/whisper-large-v3-turbo",
 };
 
@@ -271,9 +274,68 @@ export function trimForSpeech(text, max) {
 // 10,000 daily Neurons are spent, with "4006: you have used up your daily free
 // allocation…". Recognise that refusal specifically so the app can say "used
 // up for today" instead of "something broke".
+// ElevenLabs answers a used-up balance with 401 {"detail":{"status":"quota_exceeded"}}
+// (or 402). Anything else is a plain error. Both fall back to Aura-1; only the
+// message to the user differs.
+export function classifyElevenLabsFailure(status, bodyText) {
+  if (status === 402 || /quota_exceeded|insufficient[_ ]credits|credits? (?:are |is )?(?:used up|exhausted)/i.test(String(bodyText || ""))) return "elevenlabs_credits";
+  return "elevenlabs_error";
+}
+
 export function isAllowanceExhausted(err) {
   const msg = err == null ? "" : String(err.message || err);
   return /\b4006\b/.test(msg) || /daily free allocation/i.test(msg);
+}
+
+// ---- Voice usage meter (v1.9.8) ----
+// The Worker holds no Cloudflare account token (by design), so it can't read
+// Cloudflare's own usage. Instead it estimates today's Workers AI Neurons from
+// what it asked for, at Cloudflare's list prices: Aura-1 $0.015 / 1k chars ≈
+// 1.31 Neurons per character (measured 2,490 for 1,900 chars), Whisper turbo
+// $0.00051 / audio minute ≈ 0.773 Neurons per second. The free allowance is
+// per Cloudflare account and resets at 00:00 UTC. Shown in /diagnostics only.
+export const VOICE_USAGE = { dailyNeurons: 10000, auraPerChar: 1.31, whisperPerSecond: 0.773, whisperPerClipFallback: 3, kvKey: "voice_usage" };
+
+export function addVoiceUsage(prev, date, ev) {
+  const u = prev && prev.date === date
+    ? { ...prev }
+    : { date, units: 0, speak: 0, chars: 0, transcribe: 0, seconds: 0, limitHitAt: null };
+  if (ev.kind === "speak") {
+    const c = Math.max(0, Number(ev.chars) || 0);
+    u.speak++; u.chars += c; u.units += c * VOICE_USAGE.auraPerChar;
+  } else if (ev.kind === "transcribe") {
+    const s = Number(ev.seconds);
+    u.transcribe++;
+    if (Number.isFinite(s) && s > 0) { u.seconds += s; u.units += s * VOICE_USAGE.whisperPerSecond; }
+    else u.units += VOICE_USAGE.whisperPerClipFallback;
+  } else if (ev.kind === "limit") {
+    if (!u.limitHitAt) u.limitHitAt = ev.at;
+  }
+  return u;
+}
+
+export function summarizeVoiceUsage(u, now = new Date()) {
+  const date = now.toISOString().slice(0, 10);
+  const cur = u && u.date === date ? u : null;
+  const nextReset = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  const units = cur ? Math.round(cur.units) : 0;
+  return {
+    date, units, limit: VOICE_USAGE.dailyNeurons,
+    pct: Math.round(units / VOICE_USAGE.dailyNeurons * 100),
+    speak: cur ? cur.speak : 0, transcribe: cur ? cur.transcribe : 0,
+    limitHitAt: cur ? cur.limitHitAt : null,
+    resetsInMinutes: Math.round((nextReset - now.getTime()) / 60000),
+  };
+}
+
+// Best-effort: a failed tally never affects the voice request it describes.
+async function recordVoiceUsage(env, ev) {
+  try {
+    const raw = await env.MEMORY.get(VOICE_USAGE.kvKey);
+    let prev = null;
+    try { prev = raw ? JSON.parse(raw) : null; } catch {}
+    await env.MEMORY.put(VOICE_USAGE.kvKey, JSON.stringify(addVoiceUsage(prev, new Date().toISOString().slice(0, 10), ev)));
+  } catch {}
 }
 
 // btoa() needs a binary string; building it in chunks avoids the argument-count
@@ -950,29 +1012,48 @@ export default {
 
         if (voice.provider === "elevenlabs") {
           const elevenLabsKey = await resolveApiKey(env, "ELEVENLABS_API_KEY");
-          if (!elevenLabsKey) {
-            return json({ ok: false, error: "ELEVENLABS_API_KEY not configured" }, 500, { ...cors, ...nocache });
+          let failReason = elevenLabsKey ? null : "elevenlabs_error";
+          if (elevenLabsKey) {
+            try {
+              const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice.voiceId}`, {
+                method: "POST",
+                headers: { "xi-api-key": elevenLabsKey, "Content-Type": "application/json" },
+                body: JSON.stringify({ text: cleanText, model_id: VOICE.elevenlabsModel, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+              });
+              if (ttsRes.ok) {
+                const audioBuffer = await ttsRes.arrayBuffer();
+                return new Response(audioBuffer, { status: 200, headers: { "Content-Type": "audio/mpeg", ...cors } });
+              }
+              failReason = classifyElevenLabsFailure(ttsRes.status, await ttsRes.text().catch(() => ""));
+            } catch { failReason = "elevenlabs_error"; }
           }
-          const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice.voiceId}`, {
-            method: "POST",
-            headers: { "xi-api-key": elevenLabsKey, "Content-Type": "application/json" },
-            body: JSON.stringify({ text: cleanText, model_id: VOICE.elevenlabsModel, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
-          });
-          if (!ttsRes.ok) {
-            const err = await ttsRes.text();
-            return json({ ok: false, error: `ElevenLabs error: ${err}` }, 502, { ...cors, ...nocache });
+          // Fail gracefully: re-voice this reply with the closest Aura-1 voice, and
+          // say why in X-Voice-Fallback so the app can tell the user once.
+          const bothDown = failReason === "elevenlabs_credits" ? "voice_credits_exhausted" : "voice_unavailable";
+          if (!env.AI) return json({ ok: false, error: bothDown }, 502, { ...cors, ...nocache });
+          try {
+            const spoken = trimForSpeech(cleanText, VOICE.auraMaxChars);
+            const audio = await env.AI.run(VOICE.auraModel, { text: spoken, speaker: VOICE.elevenlabsFallback[voice.key] || VOICE.defaultVoice });
+            ctx?.waitUntil?.(recordVoiceUsage(env, { kind: "speak", chars: spoken.length }));
+            return new Response(audio, { status: 200, headers: { "Content-Type": "audio/mpeg", "X-Voice-Fallback": failReason, "Access-Control-Expose-Headers": "X-Voice-Fallback", ...cors } });
+          } catch (e) {
+            if (isAllowanceExhausted(e)) ctx?.waitUntil?.(recordVoiceUsage(env, { kind: "limit", at: new Date().toISOString() }));
+            return json({ ok: false, error: bothDown }, 502, { ...cors, ...nocache });
           }
-          const audioBuffer = await ttsRes.arrayBuffer();
-          return new Response(audioBuffer, { status: 200, headers: { "Content-Type": "audio/mpeg", ...cors } });
         }
 
         const aiBlock = requireAI(env, cors, nocache);
         if (aiBlock) return aiBlock;
         try {
-          const audio = await env.AI.run(VOICE.auraModel, { text: trimForSpeech(cleanText, VOICE.auraMaxChars), speaker: voice.speaker });
+          const spoken = trimForSpeech(cleanText, VOICE.auraMaxChars);
+          const audio = await env.AI.run(VOICE.auraModel, { text: spoken, speaker: voice.speaker });
+          ctx?.waitUntil?.(recordVoiceUsage(env, { kind: "speak", chars: spoken.length }));
           return new Response(audio, { status: 200, headers: { "Content-Type": "audio/mpeg", ...cors } });
         } catch (e) {
-          if (isAllowanceExhausted(e)) return json({ ok: false, error: "voice_allowance_exhausted" }, 429, { ...cors, ...nocache });
+          if (isAllowanceExhausted(e)) {
+            ctx?.waitUntil?.(recordVoiceUsage(env, { kind: "limit", at: new Date().toISOString() }));
+            return json({ ok: false, error: "voice_allowance_exhausted" }, 429, { ...cors, ...nocache });
+          }
           return json({ ok: false, error: `Voice error: ${String((e && e.message) || e).slice(0, 160)}` }, 502, { ...cors, ...nocache });
         }
       }
@@ -2070,8 +2151,12 @@ ${found.content}`;
         let out;
         try {
           out = await env.AI.run(VOICE.whisperModel, input);
+          ctx?.waitUntil?.(recordVoiceUsage(env, { kind: "transcribe", seconds: out && out.transcription_info && out.transcription_info.duration }));
         } catch (e) {
-          if (isAllowanceExhausted(e)) return json({ ok: false, error: "voice_allowance_exhausted" }, 429, { ...cors, ...nocache });
+          if (isAllowanceExhausted(e)) {
+            ctx?.waitUntil?.(recordVoiceUsage(env, { kind: "limit", at: new Date().toISOString() }));
+            return json({ ok: false, error: "voice_allowance_exhausted" }, 429, { ...cors, ...nocache });
+          }
           return json({ ok: false, error: `Transcription error: ${String((e && e.message) || e).slice(0, 160)}` }, 502, { ...cors, ...nocache });
         }
         const transcript = String((out && out.text) || "").trim();
@@ -2265,7 +2350,7 @@ ${found.content}`;
       // GET /diagnostics — system health: memory sizes, cost log, error log, API keys
       if (method === "GET" && path === "/diagnostics") {
         const TOKEN_CAP = 180000;
-        const [files, archiveFiles, deepArchiveFiles, costRaw, errRaw] = await Promise.all([
+        const [files, archiveFiles, deepArchiveFiles, costRaw, errRaw, voiceUsageRaw] = await Promise.all([
           Promise.all(MEMORY_FILES.map(async f => {
             const content = await env.MEMORY.get(f);
             const bytes = content ? content.length : 0;
@@ -2283,6 +2368,7 @@ ${found.content}`;
           })),
           env.MEMORY.get("cost_log"),
           env.MEMORY.get("_error_log"),
+          env.MEMORY.get(VOICE_USAGE.kvKey),
         ]);
         const totalTokens = files.reduce((s, f) => s + f.tokens, 0);
         const archiveTokens = archiveFiles.reduce((s, f) => s + f.tokens, 0);
@@ -2313,6 +2399,7 @@ ${found.content}`;
             return results;
           })(),
           voice: { aiConnected: !!env.AI },
+          voiceUsage: summarizeVoiceUsage((() => { try { return voiceUsageRaw ? JSON.parse(voiceUsageRaw) : null; } catch { return null; } })()),
         }, 200, { ...cors, ...nocache });
       }
 

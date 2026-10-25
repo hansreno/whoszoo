@@ -29,6 +29,10 @@ import {
   arrayBufferToBase64,
   buildWhisperInput,
   isWhisperHallucination,
+  VOICE_USAGE,
+  addVoiceUsage,
+  summarizeVoiceUsage,
+  classifyElevenLabsFailure,
 } from "../src/worker.js";
 
 // ---- normKey -----------------------------------------------------------
@@ -521,4 +525,70 @@ test("trimForSpeech cuts at a word, not mid-word, when no line or sentence end i
   const out = trimForSpeech(s, 1900);
   assert.ok(out.length <= 1900 && out.length > 950);
   assert.match(out, /word$/);
+});
+
+// ---- voice usage meter (estimate of the Workers AI daily free allowance) ----
+
+test("addVoiceUsage estimates Neurons from spoken characters and transcribed seconds", () => {
+  let u = addVoiceUsage(null, "2026-10-25", { kind: "speak", chars: 1000 });
+  u = addVoiceUsage(u, "2026-10-25", { kind: "transcribe", seconds: 60 });
+  assert.equal(u.speak, 1);
+  assert.equal(u.transcribe, 1);
+  assert.equal(Math.round(u.units), Math.round(1000 * VOICE_USAGE.auraPerChar + 60 * VOICE_USAGE.whisperPerSecond));
+});
+
+test("addVoiceUsage uses a per-clip fallback when Whisper reports no duration", () => {
+  const u = addVoiceUsage(null, "2026-10-25", { kind: "transcribe", seconds: null });
+  assert.equal(u.units, VOICE_USAGE.whisperPerClipFallback);
+});
+
+test("addVoiceUsage starts a fresh tally on a new UTC day", () => {
+  const old = addVoiceUsage(null, "2026-10-24", { kind: "speak", chars: 5000 });
+  const u = addVoiceUsage(old, "2026-10-25", { kind: "speak", chars: 100 });
+  assert.equal(u.date, "2026-10-25");
+  assert.equal(u.speak, 1);
+  assert.equal(Math.round(u.units), Math.round(100 * VOICE_USAGE.auraPerChar));
+});
+
+test("addVoiceUsage records when the allowance ran out", () => {
+  const u = addVoiceUsage(null, "2026-10-25", { kind: "limit", at: "2026-10-25T15:42:00.000Z" });
+  assert.equal(u.limitHitAt, "2026-10-25T15:42:00.000Z");
+});
+
+test("summarizeVoiceUsage reports today's estimate, percent and time to the UTC reset", () => {
+  const u = addVoiceUsage(null, "2026-10-25", { kind: "speak", chars: 3817 }); // ≈ 5000 units
+  const s = summarizeVoiceUsage(u, new Date("2026-10-25T19:00:00Z"));
+  assert.equal(s.limit, VOICE_USAGE.dailyNeurons);
+  assert.equal(s.pct, 50);
+  assert.equal(s.speak, 1);
+  assert.equal(s.resetsInMinutes, 300);
+});
+
+test("summarizeVoiceUsage shows zero for a stale day's record", () => {
+  const u = addVoiceUsage(null, "2026-10-24", { kind: "speak", chars: 3000 });
+  const s = summarizeVoiceUsage(u, new Date("2026-10-25T01:00:00Z"));
+  assert.equal(s.units, 0);
+  assert.equal(s.speak, 0);
+  assert.equal(s.limitHitAt, null);
+});
+
+test("VOICE_USAGE is an object (the Workers runtime refuses bare primitive exports)", () => {
+  assert.equal(typeof VOICE_USAGE, "object");
+});
+
+// ---- ElevenLabs failure → Aura-1 fallback ----
+
+test("classifyElevenLabsFailure recognises a used-up credit balance", () => {
+  assert.equal(classifyElevenLabsFailure(401, '{"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 10000."}}'), "elevenlabs_credits");
+  assert.equal(classifyElevenLabsFailure(402, ""), "elevenlabs_credits");
+});
+
+test("classifyElevenLabsFailure treats anything else as a plain ElevenLabs error", () => {
+  assert.equal(classifyElevenLabsFailure(401, '{"detail":{"status":"invalid_api_key"}}'), "elevenlabs_error");
+  assert.equal(classifyElevenLabsFailure(503, "Service Unavailable"), "elevenlabs_error");
+});
+
+test("ElevenLabs voices fall back to the matching Aura-1 voice", () => {
+  assert.equal(VOICE.elevenlabsFallback.brittney, "asteria");
+  assert.equal(VOICE.elevenlabsFallback.callum, "orion");
 });

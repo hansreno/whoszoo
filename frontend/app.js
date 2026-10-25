@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.7
-const APP_VERSION = "1.9.7";
+// WhosZoo — Frontend App v1.9.9
+const APP_VERSION = "1.9.9";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -2031,6 +2031,7 @@ async function sendMessage(text, brief = false, silent = false) {
       lines.push(keyFmt("Anthropic:  ", d.keys.anthropic?.configured,  "Claude AI (chat + memory analysis)", d.keys.anthropicHint));
       lines.push(keyFmt("ElevenLabs: ", d.keys.elevenlabs?.configured, "Brittney + Callum voices (optional)", d.keys.elevenLabsHint));
       lines.push(keyFmt("Voice:      ", d.voice?.aiConnected,          "Cloudflare AI: Asteria, Orion, voice-to-text", d.voice?.aiConnected ? "" : "re-run the update at whoszoo.app/setup"));
+      if (d.voice?.aiConnected && d.voiceUsage) lines.push(...voiceUsageLines(d.voiceUsage));
       if (d.recentErrors.length > 0) {
         lines.push("");
         lines.push(`Recent errors (${d.recentErrors.length}):`);
@@ -8678,7 +8679,14 @@ function keepFailedRecording(blob) {
 // failure: a repeat failure with nothing on screen looks like a frozen app
 // (v1.9.0 live test). Returns true when it handled the code.
 function noteVoiceProblem(code) {
-  const keys = { voice_allowance_exhausted: "voice.allowance-exhausted", ai_not_configured: "voice.ai-not-configured" };
+  const keys = {
+    voice_allowance_exhausted: "voice.allowance-exhausted",
+    ai_not_configured: "voice.ai-not-configured",
+    voice_credits_exhausted: "voice.credits-exhausted", // ElevenLabs credits used up, Cloudflare unavailable too
+    voice_unavailable: "voice.unavailable",             // ElevenLabs failed, Cloudflare unavailable too
+    elevenlabs_credits: "voice.fallback-credits",       // ElevenLabs credits used up; this reply used Asteria/Orion
+    elevenlabs_error: "voice.fallback-error",           // ElevenLabs failed; this reply used Asteria/Orion
+  };
   if (!keys[code]) return false;
   showToast(t(keys[code]));
   const today = new Date().toLocaleDateString("en-CA");
@@ -8737,6 +8745,19 @@ convTapToHearBtn.addEventListener("click", () => {
   const pr = a.play();
   if (pr && pr.catch) pr.catch(done);
 });
+
+// /diagnostics: today's estimated use of Cloudflare's free daily voice
+// allowance (Asteria/Orion and voice-to-text; ElevenLabs is billed separately).
+function voiceUsageLines(v) {
+  const h = Math.floor(v.resetsInMinutes / 60), m = v.resetsInMinutes % 60;
+  const out = [`  Voice today: about ${v.units.toLocaleString("en-US")} of ${v.limit.toLocaleString("en-US")} free units (${v.pct}%) · ${v.speak} spoken ${v.speak === 1 ? "reply" : "replies"}, ${v.transcribe} ${v.transcribe === 1 ? "transcription" : "transcriptions"} · resets in ${h} h ${m} min (estimate)`];
+  if (v.limitHitAt) {
+    let when = v.limitHitAt;
+    try { when = new Date(v.limitHitAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); } catch {}
+    out.push(`  ⚠ Free voice allowance used up at ${when} — voice is back after the reset`);
+  }
+  return out;
+}
 
 function speakWithBrowser(text) {
   return new Promise(resolve => {
@@ -8804,11 +8825,13 @@ async function speakText(text, autoLoop = false) {
       // iOS ignores speechSynthesis outside a gesture, so only speakWithBrowser's
       // watchdog (up to 60 s) ended it and the orb sat on "speaking" for each
       // reply. On iPhone, skip it for the cases that now happen routinely.
-      const skipBrowserVoice = isIOS() && (browserOnly || code === "voice_allowance_exhausted" || code === "ai_not_configured");
+      const skipBrowserVoice = isIOS() && (browserOnly || ["voice_allowance_exhausted", "ai_not_configured", "voice_credits_exhausted", "voice_unavailable"].includes(code));
       if (!skipBrowserVoice && mine()) await speakWithBrowser(spokenText);
       afterSpeak();
       return;
     }
+    // The worker re-voiced an ElevenLabs reply with Aura-1 (credits used up, or an error).
+    { const fb = res.headers && res.headers.get && res.headers.get("X-Voice-Fallback"); if (fb) noteVoiceProblem(fb); }
     // Route TTS through the session AudioContext (created in enterConvMode inside a
     // real gesture). This bypasses HTMLMediaElement.play() which iOS blocks async.
     // If the context got suspended by mic teardown between turns, attempt a timed

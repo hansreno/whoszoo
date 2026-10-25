@@ -84,6 +84,10 @@ const LOCALES = {
     "voice.ai-not-configured":     "Voice needs the Cloudflare AI connection. Run the update at whoszoo.app/setup to add it.",
     "voice.recording-kept":        "This journal recording couldn't be transcribed, so it has been kept. Save it below, then type it in or dictate it again later.",
     "voice.recording-download":    "⬇ Save recording",
+    "voice.fallback-credits":      "Your ElevenLabs credits are used up, so replies use Asteria or Orion for now. Top up at elevenlabs.io, or choose Asteria or Orion in Settings.",
+    "voice.fallback-error":        "ElevenLabs didn't answer, so this reply used Asteria or Orion instead.",
+    "voice.credits-exhausted":     "Your ElevenLabs credits are used up, and today's free Cloudflare voice is used up too. Replies show as text until you top up at elevenlabs.io or the free allowance resets at midnight UTC.",
+    "voice.unavailable":           "ElevenLabs didn't answer, and the free Cloudflare voice isn't available right now either. Replies show as text for now.",
     "voice.reload-needed":         "Voice mode needs a refresh — reload the page.",
     "settings.apikey-not-configured": "Not configured",
     "settings.apikey-btn-save":         "Save",
@@ -306,7 +310,7 @@ const LOCALES = {
     "cmd.desc.browse-cold-reflections":    "list cold-storage reflections sorted by size",
     "cmd.desc.costs":                      "show today's and weekly Claude API cost estimate",
     "cmd.desc.delete":                     "permanently delete a record (requires typing delete)",
-    "cmd.desc.diagnostics":                "system health: memory sizes, cost log, errors",
+    "cmd.desc.diagnostics":                "system health: memory sizes, cost log, voice allowance, errors",
     "cmd.desc.security":                   "show recent login history (location, device, method)",
     "cmd.desc.edit":                       "edit a record directly (fuzzy search)",
     "cmd.desc.export":                     "download an encrypted backup of all memory files",
@@ -492,6 +496,10 @@ const LOCALES = {
     "voice.ai-not-configured":     "La voz necesita la conexión de IA de Cloudflare. Ejecuta la actualización en whoszoo.app/setup para añadirla.", // needs-review
     "voice.recording-kept":        "No se pudo transcribir esta grabación del diario, así que se ha conservado. Guárdala abajo y luego escríbela o díctala de nuevo más tarde.", // needs-review
     "voice.recording-download":    "⬇ Guardar grabación", // needs-review
+    "voice.fallback-credits":      "Se agotaron tus créditos de ElevenLabs, así que por ahora las respuestas usan Asteria u Orion. Recarga en elevenlabs.io o elige Asteria u Orion en Ajustes.", // needs-review
+    "voice.fallback-error":        "ElevenLabs no respondió, así que esta respuesta usó Asteria u Orion.", // needs-review
+    "voice.credits-exhausted":     "Se agotaron tus créditos de ElevenLabs y también la voz gratuita de Cloudflare de hoy. Las respuestas se muestran como texto hasta que recargues en elevenlabs.io o la cuota gratuita se renueve a medianoche UTC.", // needs-review
+    "voice.unavailable":           "ElevenLabs no respondió y la voz gratuita de Cloudflare tampoco está disponible ahora. Por ahora las respuestas se muestran como texto.", // needs-review
     "voice.reload-needed":         "El modo de voz necesita actualizarse: recarga la página.", // needs-review
     "settings.apikey-not-configured": "No configurado",
     "settings.apikey-btn-save":         "Guardar",
@@ -714,7 +722,7 @@ const LOCALES = {
     "cmd.desc.browse-cold-reflections":    "listar reflexiones en almacenamiento en frío ordenadas por tamaño", // needs-review
     "cmd.desc.costs":                      "mostrar el costo estimado de la API de Claude hoy y esta semana", // needs-review
     "cmd.desc.delete":                     "eliminar permanentemente un registro (requiere escribir delete)", // needs-review
-    "cmd.desc.diagnostics":                "salud del sistema: tamaños de memoria, registro de costos, errores", // needs-review
+    "cmd.desc.diagnostics":                "salud del sistema: tamaños de memoria, registro de costos, cuota de voz, errores", // needs-review
     "cmd.desc.security":                   "mostrar historial de inicio de sesión reciente (ubicación, dispositivo, método)", // needs-review
     "cmd.desc.edit":                       "editar un registro directamente (búsqueda aproximada)", // needs-review
     "cmd.desc.export":                     "descargar una copia de seguridad cifrada de todos los archivos de memoria", // needs-review
@@ -900,6 +908,10 @@ const LOCALES = {
     "voice.ai-not-configured":     "La voix a besoin de la connexion IA de Cloudflare. Lancez la mise à jour sur whoszoo.app/setup pour l'ajouter.", // needs-review
     "voice.recording-kept":        "Cet enregistrement du journal n'a pas pu être transcrit, il a donc été conservé. Enregistrez-le ci-dessous, puis saisissez-le ou dictez-le à nouveau plus tard.", // needs-review
     "voice.recording-download":    "⬇ Enregistrer l'audio", // needs-review
+    "voice.fallback-credits":      "Vos crédits ElevenLabs sont épuisés : les réponses utilisent Asteria ou Orion pour l'instant. Rechargez sur elevenlabs.io, ou choisissez Asteria ou Orion dans les réglages.", // needs-review
+    "voice.fallback-error":        "ElevenLabs n'a pas répondu : cette réponse a utilisé Asteria ou Orion.", // needs-review
+    "voice.credits-exhausted":     "Vos crédits ElevenLabs sont épuisés, et la voix gratuite Cloudflare du jour aussi. Les réponses s'affichent en texte jusqu'à votre recharge sur elevenlabs.io ou jusqu'au renouvellement du quota à minuit UTC.", // needs-review
+    "voice.unavailable":           "ElevenLabs n'a pas répondu et la voix gratuite Cloudflare n'est pas disponible non plus pour le moment. Les réponses s'affichent en texte pour l'instant.", // needs-review
     "voice.reload-needed":         "Le mode vocal doit être actualisé : rechargez la page.", // needs-review
     "settings.apikey-not-configured": "Non configuré",
     "settings.apikey-btn-save":         "Enregistrer",
@@ -1122,7 +1134,7 @@ const LOCALES = {
     "cmd.desc.browse-cold-reflections":    "lister les réflexions en stockage froid triées par taille", // needs-review
     "cmd.desc.costs":                      "afficher l'estimation du coût de l'API Claude aujourd'hui et cette semaine", // needs-review
     "cmd.desc.delete":                     "supprimer définitivement un enregistrement (nécessite de saisir delete)", // needs-review
-    "cmd.desc.diagnostics":                "santé du système : tailles mémoire, journal des coûts, erreurs", // needs-review
+    "cmd.desc.diagnostics":                "santé du système : tailles mémoire, journal des coûts, quota vocal, erreurs", // needs-review
     "cmd.desc.security":                   "afficher l'historique de connexion récent (lieu, appareil, méthode)", // needs-review
     "cmd.desc.edit":                       "modifier un enregistrement directement (recherche approximative)", // needs-review
     "cmd.desc.export":                     "télécharger une sauvegarde chiffrée de tous les fichiers mémoire", // needs-review
@@ -1308,6 +1320,10 @@ const LOCALES = {
     "voice.ai-not-configured":     "वॉइस के लिए Cloudflare AI कनेक्शन चाहिए। इसे जोड़ने के लिए whoszoo.app/setup पर अपडेट चलाएँ।", // needs-review
     "voice.recording-kept":        "इस जर्नल रिकॉर्डिंग को टेक्स्ट में नहीं बदला जा सका, इसलिए इसे संभालकर रखा गया है। इसे नीचे सेव करें, फिर बाद में टाइप करें या दोबारा बोलें।", // needs-review
     "voice.recording-download":    "⬇ रिकॉर्डिंग सेव करें", // needs-review
+    "voice.fallback-credits":      "आपके ElevenLabs क्रेडिट खत्म हो गए हैं, इसलिए अभी जवाब Asteria या Orion से आएँगे। elevenlabs.io पर टॉप-अप करें, या सेटिंग्स में Asteria या Orion चुनें।", // needs-review
+    "voice.fallback-error":        "ElevenLabs ने जवाब नहीं दिया, इसलिए यह जवाब Asteria या Orion से आया।", // needs-review
+    "voice.credits-exhausted":     "आपके ElevenLabs क्रेडिट खत्म हो गए हैं, और आज की मुफ़्त Cloudflare आवाज़ भी। elevenlabs.io पर टॉप-अप करने या मध्यरात्रि UTC पर मुफ़्त कोटा रीसेट होने तक जवाब टेक्स्ट में दिखेंगे।", // needs-review
+    "voice.unavailable":           "ElevenLabs ने जवाब नहीं दिया, और मुफ़्त Cloudflare आवाज़ भी अभी उपलब्ध नहीं है। फ़िलहाल जवाब टेक्स्ट में दिखेंगे।", // needs-review
     "voice.reload-needed":         "वॉइस मोड को रीफ़्रेश करना होगा — पेज दोबारा लोड करें।", // needs-review
     "settings.apikey-not-configured": "कॉन्फ़िगर नहीं है", // needs-review
     "settings.apikey-btn-save":         "सेव करें", // needs-review
@@ -1530,7 +1546,7 @@ const LOCALES = {
     "cmd.desc.browse-cold-reflections":    "cold storage के reflections को आकार के अनुसार सूचीबद्ध करें", // needs-review
     "cmd.desc.costs":                      "आज और इस हफ्ते का Claude API लागत अनुमान दिखाएँ", // needs-review
     "cmd.desc.delete":                     "एक रिकॉर्ड स्थायी रूप से हटाएँ (delete टाइप करना ज़रूरी)", // needs-review
-    "cmd.desc.diagnostics":                "सिस्टम स्वास्थ्य: मेमोरी आकार, लागत लॉग, त्रुटियाँ", // needs-review
+    "cmd.desc.diagnostics":                "सिस्टम स्वास्थ्य: मेमोरी आकार, लागत लॉग, वॉइस कोटा, त्रुटियाँ", // needs-review
     "cmd.desc.security":                   "हालिया लॉगिन इतिहास दिखाएँ (स्थान, डिवाइस, तरीका)", // needs-review
     "cmd.desc.edit":                       "कोई रिकॉर्ड सीधे संपादित करें (फ़ज़ी सर्च)", // needs-review
     "cmd.desc.export":                     "सभी मेमोरी फ़ाइलों का एन्क्रिप्टेड बैकअप डाउनलोड करें", // needs-review
