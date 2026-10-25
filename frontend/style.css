@@ -1188,6 +1188,27 @@ html, body {
   margin-bottom: 4px;
 }
 .conv-transcript::-webkit-scrollbar { display: none; }
+/* iPhone: a reply that couldn't start on its own (iOS needs a tap) */
+.conv-tap-to-hear {
+  margin: 4px 0 6px;
+  padding: 12px 20px;
+  min-height: 44px;
+  border-radius: 22px;
+  border: 1px solid var(--accent);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.conv-audio-reason {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.8;
+  text-align: center;
+  max-width: 300px;
+  margin-bottom: 4px;
+}
 .conv-controls {
   display: flex;
   align-items: center;

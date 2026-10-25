@@ -381,3 +381,54 @@ scenario("whisper-mute-during-starting", { ...W, fakes: { gumDelayMs: 1500 } }, 
   await app.press("conv-btn"); await app.advance(200);   // "Starting..."
   await app.click("conv-mute"); await app.advance(3000);
 });
+
+// ---- iPhone: spoken reply that can't start on its own (v1.9.4) ----
+// Observed on real iPhones (2026-10-24): thinking chimes play, the spoken reply
+// is silent, no error shown. Modelled as: switching the audio session to
+// "playback" interrupts the running context and a resume outside a tap fails.
+const IOS_INTERRUPT = { ...IPH, fakes: { audioSession: true, audioSessionInterrupts: "playback", resumeBlocked: true } };
+const tapBtn = (app) => app.w.document.getElementById("conv-tap-to-hear");
+const reasonEl = (app) => app.w.document.getElementById("conv-audio-reason");
+
+scenario("iphone-reply-audio-interrupted-tap-to-hear", IOS_INTERRUPT, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await app.advance(4000);
+  assert.ok(tapBtn(app) && !tapBtn(app).classList.contains("hidden"), "a Tap-to-hear button appears when the reply can't start on its own");
+  assert.match(reasonEl(app).textContent, /interrupted/, "the reason line names the failed step");
+  const speakAt = app.trace.findIndex(e => e.k === "fetch" && e.path === "/speak");
+  assert.equal(app.trace.slice(speakAt).filter(e => e.k === "recorder.new").length, 0, "it waits for the tap instead of listening over the reply");
+  await app.clickMarked("conv-tap-to-hear");
+  const c = app.trace.findIndex(e => e.k === "click" && e.el === "conv-tap-to-hear");
+  const ce = app.trace.findIndex(e => e.k === "click.end" && e.el === "conv-tap-to-hear");
+  assert.ok(app.trace.slice(c, ce).some(e => e.k === "audio.play"), "playback starts inside the tap (iOS gesture rule)");
+  await app.advance(3000);
+  assert.ok(app.trace.slice(ce).some(e => e.k === "recorder.new"), "after the reply plays, listening resumes");
+  assert.ok(tapBtn(app).classList.contains("hidden"));
+});
+
+scenario("iphone-reply-decode-fails-tap-to-hear", { ...IPH, fakes: { decodeFails: true } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await app.advance(4000);
+  assert.ok(tapBtn(app) && !tapBtn(app).classList.contains("hidden"), "a Tap-to-hear button appears when the audio can't be decoded");
+  assert.match(reasonEl(app).textContent, /decode/i);
+});
+
+scenario("iphone-tap-to-hear-then-hard-stop", IOS_INTERRUPT, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await app.advance(4000);
+  await app.press("conv-orb"); await app.advance(2000);
+  assert.ok(tapBtn(app).classList.contains("hidden"), "a hard stop removes the offer");
+  assert.equal(app.trace.filter(e => e.k === "audio.play").length, 0);
+});
+
+// Real iPhones (2026-10-24): the thinking chime was inaudible and only its tail
+// was heard as the reply switched to the speaker — the session was still
+// "play-and-record" (earpiece) during thinking. Switch to playback the moment
+// the mic is released, before the chime starts.
+scenario("iphone-thinking-chime-on-speaker", { ...IPH, fakes: { audioSession: true } }, async (app) => {
+  await app.press("conv-btn"); await app.advance(300); await app.say(1500);
+  await app.advance(4000);
+  const thinkingAt = app.trace.findIndex(e => e.k === "ui" && e.f === "label" && /Thinking/.test(e.v));
+  const types = app.trace.slice(0, thinkingAt).filter(e => e.k === "audioSession.type").map(e => e.v);
+  assert.equal(types[types.length - 1], "playback", "the session is on the speaker (playback) before the thinking chime starts");
+});

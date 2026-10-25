@@ -13,6 +13,10 @@ export function installFakes(window, opts) {
     gumPlan: [],                 // per-call [{ delayMs, reject }]; empty → { delayMs: gumDelayMs }
     latencyMs: {},               // path -> response delay (default 200 ms)
     decodeDelayMs: 0,            // decodeAudioData resolve delay
+    decodeFails: false,          // decodeAudioData rejects with EncodingError
+    audioSession: false,         // expose navigator.audioSession (iOS 17+ WebKit) — opt-in
+    audioSessionInterrupts: false, // true, or a type ("playback"): setting it interrupts running contexts
+    resumeBlocked: false,        // resume() outside a gesture leaves an interrupted context interrupted
     audioContextState: "running",
     speechSynthesis: device === "iphone" ? "noop" : "plays", // iOS ignores speak() outside a gesture
     transcript: "Remind me about Lily",
@@ -113,10 +117,16 @@ export function installFakes(window, opts) {
 
   // ---- audio output and the silence detector ----
   let ctxSeq = 0;
+  const contexts = [];
   class FakeAudioContext {
-    constructor() { this.id = ++ctxSeq; this.state = cfg.audioContextState; this.destination = {}; rec("audioContext.new", { ctx: this.id }); }
+    constructor() { this.id = ++ctxSeq; this.state = cfg.audioContextState; this.destination = {}; contexts.push(this); rec("audioContext.new", { ctx: this.id }); }
     get currentTime() { return (clock.now() - t0) / 1000; }
-    resume() { rec("audioContext.resume", { ctx: this.id }); if (this.state !== "closed") this.state = "running"; return Promise.resolve(); }
+    resume() {
+      rec("audioContext.resume", { ctx: this.id });
+      if (this.state === "interrupted" && cfg.resumeBlocked) return Promise.resolve();
+      if (this.state !== "closed") this.state = "running";
+      return Promise.resolve();
+    }
     close() { rec("audioContext.close", { ctx: this.id }); this.state = "closed"; return Promise.resolve(); }
     // A disabled or stopped track delivers silence, as in a real browser.
     createAnalyser() { return { fftSize: 1024, _stream: null, getFloatTimeDomainData(buf) { const tr = this._stream && this._stream.getTracks()[0]; buf.fill(tr && (!tr.enabled || tr.readyState !== "live") ? 0 : level); } }; }
@@ -135,6 +145,7 @@ export function installFakes(window, opts) {
       return { gain: p, connect(n) { return n; } };
     }
     decodeAudioData() {
+      if (cfg.decodeFails) { const e = new Error("Decoding failed"); e.name = "EncodingError"; return Promise.reject(e); }
       if (!cfg.decodeDelayMs) return Promise.resolve({ duration: 1.5 });
       return new Promise((r) => clock.setTimeout(() => r({ duration: 1.5 }), cfg.decodeDelayMs));
     }
@@ -148,6 +159,22 @@ export function installFakes(window, opts) {
     }
   }
   window.AudioContext = FakeAudioContext;
+  if (cfg.audioSession) {
+    let type = "auto";
+    Object.defineProperty(window.navigator, "audioSession", { configurable: true, value: {
+      get type() { return type; },
+      set type(v) {
+        type = v; rec("audioSession.type", { v });
+        if (cfg.audioSessionInterrupts === true || cfg.audioSessionInterrupts === v) for (const c of contexts) if (c.state === "running") { c.state = "interrupted"; rec("audioContext.interrupted", { ctx: c.id }); }
+      },
+    } });
+  }
+  // HTMLAudioElement playback (jsdom has none): records and ends after 1 s.
+  window.Audio = class FakeAudio {
+    constructor(src) { this.src = src; this.onended = null; this.onerror = null; this._t = null; }
+    play() { rec("audio.play"); this._t = clock.setTimeout(() => { if (this.onended) this.onended(); }, 1000); return Promise.resolve(); }
+    pause() { rec("audio.pause"); clock.clearTimeout(this._t); }
+  };
   window.webkitAudioContext = FakeAudioContext;
 
   window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; this.onend = null; this.onerror = null; } };

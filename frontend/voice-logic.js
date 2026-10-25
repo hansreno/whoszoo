@@ -87,7 +87,7 @@
     return gate;
   }
 
-  const api = { version: "1.9.3", pttApplyResults, pttJoin, createPendingFinals, orbClassFor, convLabelKeyFor, muteActions };
+  const api = { version: "1.9.5", pttApplyResults, pttJoin, createPendingFinals, orbClassFor, convLabelKeyFor, muteActions };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.VoiceLogic = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

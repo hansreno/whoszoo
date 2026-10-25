@@ -88,3 +88,31 @@ test("fakes: a disabled (muted) mic track reads as silence, like a real browser"
     assert.equal(buf[0], 0, "disabled track is silent");
   } finally { app.close(); }
 });
+
+test("fakes: opt-in iOS audio session interrupts running contexts, and a blocked resume stays interrupted", async () => {
+  const app = await loadVoiceApp({ device: "iphone", inputMode: "whisper", fakes: { audioSession: true, audioSessionInterrupts: true, resumeBlocked: true } });
+  try {
+    const ctx = new app.w.AudioContext();
+    assert.equal(ctx.state, "running");
+    app.w.navigator.audioSession.type = "playback";
+    assert.equal(ctx.state, "interrupted");
+    await ctx.resume();
+    assert.equal(ctx.state, "interrupted");
+    assert.ok(app.trace.some(e => e.k === "audioSession.type" && e.v === "playback"));
+  } finally { app.close(); }
+});
+
+test("fakes: decodeFails rejects decodeAudioData; HTMLAudio play is recorded and ends", async () => {
+  const app = await loadVoiceApp({ device: "iphone", inputMode: "whisper", fakes: { decodeFails: true } });
+  try {
+    const ctx = new app.w.AudioContext();
+    const err = await ctx.decodeAudioData(new ArrayBuffer(8)).then(() => null, (e) => e.name);
+    assert.equal(err, "EncodingError");
+    const a = new app.w.Audio("blob:fake/1");
+    let ended = false; a.onended = () => { ended = true; };
+    await a.play();
+    await app.advance(2000);
+    assert.ok(ended);
+    assert.ok(app.trace.some(e => e.k === "audio.play"));
+  } finally { app.close(); }
+});

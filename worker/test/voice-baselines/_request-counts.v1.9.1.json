@@ -144,5 +144,25 @@
     "/chat": 1,
     "/speak": 1,
     "/transcribe": 1
+  },
+  "iphone-reply-audio-interrupted-tap-to-hear": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "iphone-reply-decode-fails-tap-to-hear": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "iphone-tap-to-hear-then-hard-stop": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
+  },
+  "iphone-thinking-chime-on-speaker": {
+    "/chat": 1,
+    "/speak": 1,
+    "/transcribe": 1
   }
 }

@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.3
-const APP_VERSION = "1.9.3";
+// WhosZoo — Frontend App v1.9.5
+const APP_VERSION = "1.9.5";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -185,6 +185,8 @@ const convMuteBtn     = document.getElementById("conv-mute");
 const convDiscardBtn    = document.getElementById("conv-discard");
 const convFinishBtn     = document.getElementById("conv-finish");
 const convTranscriptEl  = document.getElementById("conv-transcript");
+const convTapToHearBtn  = document.getElementById("conv-tap-to-hear");
+const convAudioReasonEl = document.getElementById("conv-audio-reason");
 const convBtn         = document.getElementById("conv-btn");
 const journalBadge       = document.getElementById("journal-mode-badge");
 const journalChunkListEl = document.getElementById("journal-chunk-list");
@@ -843,6 +845,7 @@ function lockApp() {
   pttToken = {};
   speakToken = {};
   whisperStartToken = {};
+  clearTapToHear();
   if (convMode) {
     stopConvAudio();
     stopThinkingSound();
@@ -7326,6 +7329,7 @@ function exitConvMode() {
   currentTranscription = {};
   speakToken = {};
   whisperStartToken = {};
+  clearTapToHear();
   // Cancel in-flight /transcribe fetch so token billing stops on exit.
   if (whisperTranscribeAbort) {
     try { whisperTranscribeAbort.abort(); } catch {}
@@ -7497,6 +7501,7 @@ function hardStopConv() {
   currentTranscription = {};
   speakToken = {};
   whisperStartToken = {};
+  clearTapToHear();
   convRecognizerToken = {};  // invalidate any pending onend/onerror so recognition doesn't auto-restart
   if (orbPressTimer)   { clearTimeout(orbPressTimer);   orbPressTimer   = null; }
   if (orbJournalTimer) { clearTimeout(orbJournalTimer); orbJournalTimer = null; }
@@ -7800,6 +7805,7 @@ function fireStillThere() {
 // in Whisper mode (and on iPhone, which is always Whisper).
 function resumeConvListening() {
   speakToken = {}; // a new listen claims the turn: a reply still finishing must not set idle over it
+  clearTapToHear();
   if (useWhisper()) { orbPttActive = true; startWhisperPTT(); }
   else convListen();
 }
@@ -8400,6 +8406,9 @@ function stopWhisperRecorder() {
         try { whisperStream.getTracks().forEach(t => t.stop()); } catch {}
         whisperStream = null;
       }
+      // iOS: back to the loudspeaker now, not when the reply starts — otherwise the
+      // thinking chime plays through the earpiece ("play-and-record") and is inaudible.
+      if (isIOS() && navigator.audioSession) { try { navigator.audioSession.type = 'playback'; } catch {} }
       whisperRecorder = null;
       whisperChunks = [];
       resolve(blob);
@@ -8637,6 +8646,50 @@ function noteVoiceProblem(code) {
   return true;
 }
 
+// ---- iPhone: a reply that can't start on its own ----
+// iOS only lets audio start from a tap. When automatic playback fails, offer a
+// "Tap to hear" button instead of falling silent; the small line under it says
+// which step failed (diagnostic, English only, while the iPhone cause is confirmed).
+let tapToHear = null; // { url, resolve }
+function setAudioReason(text) {
+  convAudioReasonEl.textContent = text || "";
+  convAudioReasonEl.classList.toggle("hidden", !text);
+}
+function clearTapToHear() {
+  if (!tapToHear) return;
+  const p = tapToHear; tapToHear = null;
+  convTapToHearBtn.classList.add("hidden");
+  try { URL.revokeObjectURL(p.url); } catch {}
+  p.resolve(false);
+}
+function offerTapToHear(blob, reason) {
+  clearTapToHear();
+  setAudioReason(reason);
+  return new Promise(resolve => {
+    tapToHear = { url: URL.createObjectURL(blob), resolve };
+    convTapToHearBtn.classList.remove("hidden");
+  });
+}
+convTapToHearBtn.addEventListener("click", () => {
+  if (!tapToHear) return;
+  const p = tapToHear; tapToHear = null;
+  convTapToHearBtn.classList.add("hidden");
+  // Synchronous on purpose: play() must start inside this tap.
+  if (navigator.audioSession) { try { navigator.audioSession.type = "playback"; } catch {} }
+  const a = new Audio(p.url);
+  convAudio = a;
+  let settled = false;
+  const done = () => {
+    if (settled) return; settled = true;
+    if (convAudio === a) convAudio = null;
+    try { URL.revokeObjectURL(p.url); } catch {}
+    p.resolve(true);
+  };
+  a.onended = done; a.onerror = done;
+  const pr = a.play();
+  if (pr && pr.catch) pr.catch(done);
+});
+
 function speakWithBrowser(text) {
   return new Promise(resolve => {
     if (!window.speechSynthesis) { resolve(); return; }
@@ -8661,12 +8714,16 @@ async function speakText(text, autoLoop = false) {
     if (!mine() || !convMode || convState === "paused") return;
     if (autoLoop) resumeConvListening(); else setConvState("idle");
   };
+  clearTapToHear();
+  if (isIOS()) setAudioReason("");
+  const ctxBefore = thinkingAudioCtx ? thinkingAudioCtx.state : "none";
   if (convMode) setConvState("speaking");
   // Switch iOS audio session to playback so TTS plays through the speaker,
   // not the earpiece. The mic was released in stopWhisperRecorder before we get here.
   if (isIOS() && typeof navigator !== 'undefined' && navigator.audioSession) {
     try { navigator.audioSession.type = 'playback'; } catch {}
   }
+  const ctxAfterSwitch = thinkingAudioCtx ? thinkingAudioCtx.state : "none";
   const spokenText = stripMdForSpeech(text);
 
   // The previous call (if any) no longer owns the turn (speakToken was just
@@ -8719,7 +8776,17 @@ async function speakText(text, autoLoop = false) {
       if (thinkingAudioCtx.state === 'running') {
         const arrayBuffer = await res.arrayBuffer();
         if (!mine()) return;
-        const audioBuffer = await thinkingAudioCtx.decodeAudioData(arrayBuffer);
+        let audioBuffer;
+        try {
+          audioBuffer = await thinkingAudioCtx.decodeAudioData(arrayBuffer.slice(0)); // a copy: decoding detaches its buffer
+        } catch (e) {
+          if (!mine()) return;
+          if (!isIOS()) throw e;
+          const type = (res.headers && res.headers.get && res.headers.get("Content-Type")) || "audio/mpeg";
+          await offerTapToHear(new Blob([arrayBuffer], { type }), `iPhone audio: couldn't decode the reply (${(e && e.name) || "error"})`);
+          afterSpeak();
+          return;
+        }
         if (!mine()) return;
         await new Promise(resolve => {
           const src = thinkingAudioCtx.createBufferSource();
@@ -8741,8 +8808,11 @@ async function speakText(text, autoLoop = false) {
         });
       } else {
         // Context won't resume (e.g. interrupted state) — fall through to Web Speech
-        await res.blob(); // consume body
-        if (mine()) await speakWithBrowser(spokenText);
+        const blob = await res.blob();
+        if (!mine()) return;
+        if (isIOS()) await offerTapToHear(blob, `iPhone audio: ${ctxBefore} → ${ctxAfterSwitch} after switching to playback; resume left it ${thinkingAudioCtx.state}`);
+        else await speakWithBrowser(spokenText);
+        if (!mine()) return;
       }
     } else {
       const audioBlob = await res.blob();

@@ -363,6 +363,7 @@ const LOCALES = {
     "conv.label.muted":           "Muted  •  ↺ to discard",
     "conv.label.muted-listening":  "Muted — tap 🎤 to listen",
     "conv.transcript.muted-not-sent": "Muted — not sent",
+    "conv.tap-to-hear":           "🔊 Tap to hear the reply",
     "conv.label.captured":        "Tap orb to send  •  ↺ discard",
     "conv.label.discarded":       "Discarded",
     "conv.exit-msg-default":      "Exit journal? Your dictation will be lost.",
@@ -769,6 +770,7 @@ const LOCALES = {
     "conv.label.muted":           "Silenciado  •  ↺ para descartar", // needs-review
     "conv.label.muted-listening":  "Silenciado: toca 🎤 para escuchar", // needs-review
     "conv.transcript.muted-not-sent": "Silenciado: no se envió", // needs-review
+    "conv.tap-to-hear":           "🔊 Toca para escuchar la respuesta", // needs-review
     "conv.label.captured":        "Toca el orbe para enviar  •  ↺ descartar", // needs-review
     "conv.label.discarded":       "Descartado", // needs-review
     "conv.exit-msg-default":      "¿Salir del diario? Se perderá tu dictado.", // needs-review
@@ -1175,6 +1177,7 @@ const LOCALES = {
     "conv.label.muted":           "Muet  •  ↺ pour ignorer", // needs-review
     "conv.label.muted-listening":  "Micro coupé — touchez 🎤 pour écouter", // needs-review
     "conv.transcript.muted-not-sent": "Micro coupé — non envoyé", // needs-review
+    "conv.tap-to-hear":           "🔊 Touchez pour écouter la réponse", // needs-review
     "conv.label.captured":        "Appuyer sur l'orbe pour envoyer  •  ↺ ignorer", // needs-review
     "conv.label.discarded":       "Ignoré", // needs-review
     "conv.exit-msg-default":      "Quitter le journal ? Votre dictée sera perdue.", // needs-review
@@ -1581,6 +1584,7 @@ const LOCALES = {
     "conv.label.muted":           "म्यूट  •  ↺ हटाने के लिए", // needs-review
     "conv.label.muted-listening":  "म्यूट — सुनने के लिए 🎤 दबाएँ", // needs-review
     "conv.transcript.muted-not-sent": "म्यूट — भेजा नहीं गया", // needs-review
+    "conv.tap-to-hear":           "🔊 जवाब सुनने के लिए टैप करें", // needs-review
     "conv.label.captured":        "भेजने के लिए ऑर्ब टैप करें  •  ↺ हटाएँ", // needs-review
     "conv.label.discarded":       "हटाया गया", // needs-review
     "conv.exit-msg-default":      "जर्नल छोड़ें? आपकी डिक्टेशन खो जाएगी।", // needs-review
