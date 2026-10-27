@@ -14,6 +14,7 @@ export function installFakes(window, opts) {
     latencyMs: {},               // path -> response delay (default 200 ms)
     decodeDelayMs: 0,            // decodeAudioData resolve delay
     decodeFails: false,          // decodeAudioData rejects with EncodingError
+    attributed: [],              // what the /attributeSources fake returns
     audioSession: false,         // expose navigator.audioSession (iOS 17+ WebKit) — opt-in
     audioSessionInterrupts: false, // true, or a type ("playback"): setting it interrupts running contexts
     resumeBlocked: false,        // resume() outside a gesture leaves an interrupted context interrupted
@@ -267,6 +268,7 @@ export function installFakes(window, opts) {
       if (mode === "error") return later(() => rej(new TypeError("Failed to fetch")));
       if (mode === "429") return later(() => res(respond(429, { ok: false, error: "voice_allowance_exhausted" })));
       if (mode === "503") return later(() => res(respond(503, { ok: false, error: "ai_not_configured" })));
+      if (mode === "404") return later(() => res(respond(404, { ok: false, error: "not found" })));
       // ElevenLabs out of credits: the worker re-voiced the reply with Aura-1 and says so.
       if (mode === "fallback-credits") return later(() => res(respond(200, new ArrayBuffer(2000), "audio/mpeg", { "x-voice-fallback": "elevenlabs_credits" })));
       // ElevenLabs out of credits and Cloudflare unavailable too.
@@ -277,6 +279,7 @@ export function installFakes(window, opts) {
         case "/speak": return later(() => res(respond(200, new ArrayBuffer(2000), "audio/mpeg")));
         case "/chat": return later(() => res(chatStream(cfg.reply, signal)));
         case "/getMemoryFile": return later(() => res(respond(200, "## Lily\n- Daughter of Maria\n", "text/plain")));
+        case "/attributeSources": return later(() => res(respond(200, { ok: true, sources: cfg.attributed || [] })));
         case "/patchMemoryFile":
         case "/insertSection":
         case "/replaceSection": return later(() => res(respond(200, { ok: true, hash: "h1" })));

@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.9
-const APP_VERSION = "1.9.9";
+// WhosZoo — Frontend App v1.9.10
+const APP_VERSION = "1.9.10";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -4101,8 +4101,16 @@ function appendSourcesFooter(msgEl, replyText, queryText = "", precomputedSource
   // unverified: how many shown cards could not be checked (network, session).
   // guessed: the answer cited nothing and these came from the name-matching
   // fallback — they must not look like citations, because they are not.
-  function renderSources(sourceList, { missing = [], ambiguous = [], unverified = 0, guessed = false } = {}) {
+  // relabeled: the answer DID cite something, but no citation named a real
+  // record (e.g. an invented group label like "Vehicle Details (Multiple
+  // Entries)"), so these cards come from the content matcher instead.
+  function renderSources(sourceList, { missing = [], ambiguous = [], unverified = 0, guessed = false, relabeled = [] } = {}) {
     btn.remove();
+    const quote = list => list.map(m => `“${m.section}”`).join(", ");
+    if (relabeled.length && sourceList.length) {
+      note(`The answer cited ${quote(relabeled)}, which ${relabeled.length === 1 ? "isn't a record" : "aren't records"} in your notes. These records match what it said — they may not be exactly where it came from.`);
+      guessed = false; missing = []; ambiguous = [];
+    }
     if ((!sourceList || sourceList.length === 0) && missing.length === 0 && ambiguous.length === 0) {
       note("No specific records were used for this response.");
       return;
@@ -4122,7 +4130,6 @@ function appendSourcesFooter(msgEl, replyText, queryText = "", precomputedSource
       });
       bar.appendChild(listEl);
     }
-    const quote = list => list.map(m => `“${m.section}”`).join(", ");
     if (unverified) {
       note(`Couldn't check ${unverified === 1 ? "one of these" : unverified + " of these"} against your notes just now.`);
     }
@@ -4147,6 +4154,17 @@ function appendSourcesFooter(msgEl, replyText, queryText = "", precomputedSource
       btn.disabled = true;
       btn.textContent = "🔗 Checking sources…";
       const { found, ...rest } = await verifyCitedSources(precomputedSources);
+      // Not one citation names a real record: find the records that match
+      // what the answer said, rather than showing a caution and nothing else.
+      if (found.length === 0 && rest.missing.length + rest.ambiguous.length > 0) {
+        btn.textContent = "🔗 Finding sources…";
+        try {
+          const res = await api("/attributeSources", "POST", { replyText, queryText, includeArchive: archiveMode >= 1 });
+          const data = await res.json();
+          const matched = data.ok ? (data.sources || []) : [];
+          if (matched.length) { renderSources(matched, { relabeled: [...rest.missing, ...rest.ambiguous] }); return; }
+        } catch {}
+      }
       renderSources(found, rest);
       return;
     }

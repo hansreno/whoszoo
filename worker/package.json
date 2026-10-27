@@ -1,10 +1,10 @@
 {
   "name": "whoszoo-worker",
-  "version": "1.9.9",
+  "version": "1.9.10",
   "type": "module",
   "description": "Cloudflare Worker and test suite for WhosWhoZoo.",
   "scripts": {
-    "test": "node --test test/worker-helpers.test.mjs test/audit-detectors.test.mjs test/endpoint-logic.test.mjs test/css-contracts.test.mjs test/frontend-contracts.test.mjs test/bullet-matching.test.mjs test/voice-clock.test.mjs test/voice-harness-smoke.test.mjs test/voice-replay.test.mjs test/voice-logic.test.mjs test/voice-counts-guard.test.mjs test/install-banner.test.mjs test/voice-usage-diagnostics.test.mjs",
+    "test": "node --test test/worker-helpers.test.mjs test/audit-detectors.test.mjs test/endpoint-logic.test.mjs test/css-contracts.test.mjs test/frontend-contracts.test.mjs test/bullet-matching.test.mjs test/voice-clock.test.mjs test/voice-harness-smoke.test.mjs test/voice-replay.test.mjs test/voice-logic.test.mjs test/voice-counts-guard.test.mjs test/install-banner.test.mjs test/voice-usage-diagnostics.test.mjs test/sources-fallback.test.mjs",
     "test:ai": "node test/ai-evals/run-evals.mjs",
     "test:ai:dry": "node test/ai-evals/run-evals.mjs --dry-run",
     "voice-baselines": "node test/voice-replay.test.mjs --update-baselines",
