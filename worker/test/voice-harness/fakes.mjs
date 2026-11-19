@@ -15,7 +15,9 @@ export function installFakes(window, opts) {
     decodeDelayMs: 0,            // decodeAudioData resolve delay
     decodeFails: false,          // decodeAudioData rejects with EncodingError
     attributed: [],              // what the /attributeSources fake returns
+    micLabel: "Default",          // MediaStreamTrack.label of the fake microphone
     audioSession: false,         // expose navigator.audioSession (iOS 17+ WebKit) — opt-in
+    wakeLock: false,             // expose navigator.wakeLock (Chrome, Safari 16.4+) — opt-in; hiding the page releases it
     audioSessionInterrupts: false, // true, or a type ("playback"): setting it interrupts running contexts
     resumeBlocked: false,        // resume() outside a gesture leaves an interrupted context interrupted
     audioContextState: "running",
@@ -66,7 +68,7 @@ export function installFakes(window, opts) {
     const id = ++streamSeq;
     let enabled = true;
     const track = {
-      kind: "audio", muted: false, readyState: "live", onended: null,
+      kind: "audio", label: cfg.micLabel, muted: false, readyState: "live", onended: null,
       stop() { if (this.readyState === "live") { this.readyState = "ended"; rec("track.stop", { stream: id }); } },
     };
     Object.defineProperty(track, "enabled", {
@@ -75,9 +77,12 @@ export function installFakes(window, opts) {
     });
     return { id, getTracks: () => [track], getAudioTracks: () => [track] };
   };
+  const deviceListeners = [];
   Object.defineProperty(window.navigator, "mediaDevices", {
     configurable: true,
     value: {
+      addEventListener(type, fn) { if (type === "devicechange") deviceListeners.push(fn); },
+      removeEventListener() {},
       getUserMedia() {
         rec("getUserMedia");
         const step = cfg.gumPlan.length ? cfg.gumPlan.shift() : { delayMs: cfg.gumDelayMs };
@@ -167,6 +172,26 @@ export function installFakes(window, opts) {
       set type(v) {
         type = v; rec("audioSession.type", { v });
         if (cfg.audioSessionInterrupts === true || cfg.audioSessionInterrupts === v) for (const c of contexts) if (c.state === "running") { c.state = "interrupted"; rec("audioContext.interrupted", { ctx: c.id }); }
+      },
+    } });
+  }
+  // Screen wake lock: as in real browsers, a request from a hidden page is
+  // refused and hiding the page releases every held lock (firing "release").
+  const wakeLocks = [];
+  if (cfg.wakeLock) {
+    Object.defineProperty(window.navigator, "wakeLock", { configurable: true, value: {
+      request(type) {
+        rec("wakeLock.request", { type });
+        if (vis !== "visible") { const e = new Error("Page not visible"); e.name = "NotAllowedError"; return Promise.reject(e); }
+        const listeners = [];
+        const s = {
+          type, released: false,
+          addEventListener(t, fn) { if (t === "release") listeners.push(fn); },
+          release() { if (!s.released) { s.released = true; rec("wakeLock.release"); for (const fn of listeners) fn(); } return Promise.resolve(); },
+          _system() { if (!s.released) { s.released = true; rec("wakeLock.systemRelease"); for (const fn of listeners) fn(); } },
+        };
+        wakeLocks.push(s);
+        return Promise.resolve(s);
       },
     } });
   }
@@ -293,6 +318,11 @@ export function installFakes(window, opts) {
   return {
     cfg, counts, unrouted, recognizers, rec,
     setLevel(v) { level = v; rec("level", { v }); },
-    setVisibility(v) { vis = v; rec("visibility", { v }); window.document.dispatchEvent(new window.Event("visibilitychange")); },
+    deviceChange() { rec("devicechange"); for (const fn of deviceListeners) fn(new window.Event("devicechange")); },
+    setVisibility(v) {
+      vis = v; rec("visibility", { v });
+      if (v === "hidden") for (const s of wakeLocks) s._system();
+      window.document.dispatchEvent(new window.Event("visibilitychange"));
+    },
   };
 }

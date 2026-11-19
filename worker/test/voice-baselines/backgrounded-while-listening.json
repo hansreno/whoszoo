@@ -156,6 +156,16 @@
  },
  {
   "t": 950,
+  "k": "track.stop",
+  "stream": 1
+ },
+ {
+  "t": 950,
+  "k": "audioContext.close",
+  "ctx": 1
+ },
+ {
+  "t": 950,
   "k": "ui",
   "f": "orb",
   "v": "conv-orb paused"

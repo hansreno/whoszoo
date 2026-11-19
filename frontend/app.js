@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.10
-const APP_VERSION = "1.9.10";
+// WhosZoo — Frontend App v1.9.12
+const APP_VERSION = "1.9.12";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -892,6 +892,8 @@ function lockApp() {
     stopSilenceDetection(true);
     if (whisperRecorder) { try { whisperRecorder.stop(); } catch {} whisperRecorder = null; whisperChunks = []; }
     if (whisperStream)   { try { whisperStream.getTracks().forEach(t => t.stop()); } catch {} whisperStream = null; }
+    whisperStreamStale = false;
+    releaseConvWakeLock();
     convMode = false;
     journalDictating = false;
   }
@@ -7320,6 +7322,7 @@ function enterConvMode() {
     try { navigator.audioSession.type = 'playback'; } catch {}
   }
   convMode = true;
+  acquireConvWakeLock();
   convMuted = false;
   _convChimePlayed = false; // fresh session — first listen will chime once
   convMuteBtn.classList.remove("muted");
@@ -7353,6 +7356,8 @@ function clearAutoSend() {
 
 function exitConvMode() {
   clearAutoSend();
+  releaseConvWakeLock();
+  whisperStreamStale = false;
   // iOS: hand the audio session back (silent switch, other apps' audio).
   if (isIOS() && navigator.audioSession) { try { navigator.audioSession.type = "auto"; } catch {} }
   if (convChatAbort)  { convChatAbort.abort();  convChatAbort  = null; }
@@ -7453,12 +7458,29 @@ function clearJournalDraft() {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     if (journalDictating) saveJournalDraft();
-    // Stop listening when app backgrounds — prevents giant silent blobs being
-    // sent to Whisper and keeps the recording indicator from staying lit.
     // Journal mode is excluded since the draft was saved above.
-    if (convMode && whisperRecorder && !journalDictating) hardStopConv();
+    if (convMode && !journalDictating) pauseForScreenOff();
+  } else if (convMode) {
+    acquireConvWakeLock(); // the browser dropped it while the page was hidden
   }
 });
+
+// Screen off (timeout or power button) or app backgrounded, in any phase
+// (v1.9.12). Before, only a sentence being recorded was stopped: a reply
+// arriving with the screen off went into an audio player the phone had put to
+// sleep, then listening restarted with the screen off, and Android kept the
+// mic, and with it the call-style audio routing, open through the lock. Now:
+// stop everything, release the mic, put the iPhone back on the loudspeaker
+// and drop the audio player. One tap on the orb starts over with a fresh mic
+// and a fresh player, both made inside that tap.
+function pauseForScreenOff() {
+  hardStopConv();
+  clearTimeout(_streamIdleTimer); _streamIdleTimer = null;
+  releaseWhisperMic();
+  whisperStreamStale = false;
+  if (isIOS() && navigator.audioSession) { try { navigator.audioSession.type = "playback"; } catch {} }
+  if (thinkingAudioCtx) { try { thinkingAudioCtx.close(); } catch {} thinkingAudioCtx = null; }
+}
 
 // Mute means nothing more goes out until unmute (v1.9.3). The decision is
 // VoiceLogic.muteActions(): Auto stops the recogniser (no audio to the browser's
@@ -7566,8 +7588,11 @@ convOrb.addEventListener("pointerdown", e => {
   convOrb.setPointerCapture(e.pointerId);
   orbPttHoldStart = Date.now();
   // Re-bless session AudioContext on every orb tap (iOS may have suspended it
-  // during the mic-teardown between turns)
-  if (thinkingAudioCtx && thinkingAudioCtx.state !== 'running') {
+  // during the mic-teardown between turns). After the screen was off there is
+  // none: make a fresh one here, inside the tap.
+  if (!thinkingAudioCtx || thinkingAudioCtx.state === 'closed') {
+    try { thinkingAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  } else if (thinkingAudioCtx.state !== 'running') {
     thinkingAudioCtx.resume().catch(() => {});
   }
   if (useWhisper()) {
@@ -8378,6 +8403,13 @@ async function startWhisperPTT() {
     // so we allow iOS to reuse whisperStream here; it is released after each turn in
     // stopWhisperRecorder(), so later turns call getUserMedia again (the pre-acquire is
     // taken once, at entry above, and never reused).
+    // An audio device came or went while this mic was open: open a fresh one so
+    // the phone routes this turn to the right speaker and mic.
+    if (whisperStreamStale && whisperStream && !whisperRecorder) {
+      try { whisperStream.getTracks().forEach(t => t.stop()); } catch {}
+      whisperStream = null;
+    }
+    whisperStreamStale = false;
     const activeTracks = whisperStream && whisperStream.getTracks().filter(t => t.readyState === 'live' && !t.muted);
     if (!activeTracks || activeTracks.length === 0) {
       // On iOS, consume the pre-acquire promise (triggered at pointerdown in the gesture).
@@ -8461,9 +8493,12 @@ function stopWhisperRecorder() {
       // On iOS: release the stream so WebKit can switch the audio session from
       // play-and-record back to playback — otherwise TTS plays through the earpiece
       // at low volume. Android/desktop keep the stream alive for low-latency restart.
-      if (isIOS() && whisperStream) {
+      // Android: also release it if an audio device changed mid-sentence, so the
+      // reply is routed afresh (Bluetooth connected or disconnected).
+      if ((isIOS() || whisperStreamStale) && whisperStream) {
         try { whisperStream.getTracks().forEach(t => t.stop()); } catch {}
         whisperStream = null;
+        whisperStreamStale = false;
       }
       // iOS: back to the loudspeaker now, not when the reply starts — otherwise the
       // thinking chime plays through the earpiece ("play-and-record") and is inaudible.
@@ -8716,6 +8751,46 @@ function noteVoiceProblem(code) {
     appendMessage("system", t(keys[code]));
   }
   return true;
+}
+
+// ---- Audio devices changing during voice mode (v1.9.12) ----
+// While a page holds the mic, Android treats it like a call and picks the
+// speaker or Bluetooth when the mic opens. Reusing that open mic after a
+// Bluetooth device connects or disconnects keeps the old routing, so let it
+// go: at once between turns, or as soon as the sentence being recorded ends.
+// iPhone already releases the mic after every sentence.
+let whisperStreamStale = false;
+if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === "function") {
+  navigator.mediaDevices.addEventListener("devicechange", () => {
+    if (!convMode || !whisperStream || isIOS()) return;
+    if (whisperRecorder) { whisperStreamStale = true; return; } // don't cut off the sentence
+    try { whisperStream.getTracks().forEach(t => t.stop()); } catch {}
+    whisperStream = null;
+  });
+}
+
+// ---- Screen on during voice mode (v1.9.12) ----
+// A hands-free conversation never touches the screen, so the phone's screen
+// timeout used to fire mid-conversation. Hold a screen wake lock while voice
+// mode is open; the browser drops it when the page is hidden, so it is asked
+// for again when the page comes back.
+let convWakeLock = null;
+let convWakeLockPending = false;
+async function acquireConvWakeLock() {
+  if (!convMode || convWakeLock || convWakeLockPending) return;
+  if (!navigator.wakeLock || document.visibilityState !== "visible") return;
+  convWakeLockPending = true;
+  try {
+    const s = await navigator.wakeLock.request("screen");
+    if (!convMode) { try { Promise.resolve(s.release()).catch(() => {}); } catch {} return; }
+    convWakeLock = s;
+    s.addEventListener("release", () => { if (convWakeLock === s) convWakeLock = null; });
+  } catch {} finally { convWakeLockPending = false; }
+}
+function releaseConvWakeLock() {
+  const s = convWakeLock;
+  convWakeLock = null;
+  if (s) { try { Promise.resolve(s.release()).catch(() => {}); } catch {} }
 }
 
 // ---- iPhone: a reply that can't start on its own ----
