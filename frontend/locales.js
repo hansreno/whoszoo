@@ -327,6 +327,24 @@ const LOCALES = {
     "cmd.desc.references":                 "find all records that mention a name or topic",
     "cmd.desc.import-contacts":             "import contacts from a .vcf (vCard) or .csv file — creates people.md records",
     "cmd.desc.reset":                      "wipe all memory files to blank templates (requires Access Key)",
+    "cmd.desc.transfer":                   "send this conversation to your other device (picked up within 12 hours)",
+    "transfer.sent":                       "📲 Sent. Open WhosWhoZoo on your other device to pick it up (kept for 12 hours).",
+    "transfer.nothing":                    "Nothing to transfer yet — this conversation is empty.",
+    "transfer.too-large":                  "This conversation is too long to transfer. Try again after a context reset (/r).",
+    "transfer.failed":                     "Couldn't send the conversation — check your connection and try again.",
+    "transfer.photo-note":                 "📷 Photo attached on the other device",
+    "transfer.card":                       "📲 Conversation from your {device} · {age}",
+    "transfer.from.computer":              "computer",
+    "transfer.from.phone":                 "phone",
+    "transfer.from.tablet":                "tablet",
+    "transfer.open":                       "Open",
+    "transfer.not-now":                    "Not now",
+    "transfer.continued":                  "Continued from your {device} · sent {age}",
+    "transfer.gone":                       "That conversation isn't waiting any more — it was opened elsewhere or expired.",
+    "transfer.open-failed":                "Couldn't open the conversation — check your connection and tap Open again.",
+    "transfer.age.now":                    "just now",
+    "transfer.age.min":                    "{n} min ago",
+    "transfer.age.h":                      "{n} h ago",
     "tooltip.apikey-save":     "Write-only — once saved the value cannot be read back",
     "tooltip.apikey-clear":    "Removes your saved key and reverts to the key set during installation",
     "tooltip.deep-badge":      "Cold storage — tap to browse",
@@ -346,6 +364,7 @@ const LOCALES = {
     "tooltip.conv-reset-ctx":  "Clear conversation history — memory stays loaded",
     "tooltip.conv-voice":      "Tap to cycle voices",
     "tooltip.conv-archive":    "Tap to include archive files in chat",
+    "tooltip.conv-transfer":   "Send this conversation to your other device",
     "tooltip.conv-mute":       "Mute mic",
     "tooltip.conv-discard":    "Discard last chunk",
     "tooltip.conv-finish":     "Finish journaling",
@@ -739,6 +758,24 @@ const LOCALES = {
     "cmd.desc.references":                 "encontrar todos los registros que mencionan un nombre o tema", // needs-review
     "cmd.desc.import-contacts":             "importar contactos desde un archivo .vcf (vCard) o .csv — crea registros en people.md", // needs-review
     "cmd.desc.reset":                      "borrar todos los archivos de memoria a plantillas en blanco (requiere Clave de Acceso)", // needs-review
+    "cmd.desc.transfer":                   "enviar esta conversación a tu otro dispositivo (se recoge en un plazo de 12 horas)", // needs-review
+    "transfer.sent":                       "📲 Enviada. Abre WhosWhoZoo en tu otro dispositivo para recogerla (se guarda 12 horas).", // needs-review
+    "transfer.nothing":                    "Aún no hay nada que transferir — esta conversación está vacía.", // needs-review
+    "transfer.too-large":                  "Esta conversación es demasiado larga para transferirla. Inténtalo de nuevo después de reiniciar el contexto (/r).", // needs-review
+    "transfer.failed":                     "No se pudo enviar la conversación — revisa tu conexión e inténtalo de nuevo.", // needs-review
+    "transfer.photo-note":                 "📷 Foto adjunta en el otro dispositivo", // needs-review
+    "transfer.card":                       "📲 Conversación de tu {device} · {age}", // needs-review
+    "transfer.from.computer":              "computadora", // needs-review
+    "transfer.from.phone":                 "teléfono", // needs-review
+    "transfer.from.tablet":                "tableta", // needs-review
+    "transfer.open":                       "Abrir", // needs-review
+    "transfer.not-now":                    "Ahora no", // needs-review
+    "transfer.continued":                  "Continuación desde tu {device} · enviada {age}", // needs-review
+    "transfer.gone":                       "Esa conversación ya no está en espera — se abrió en otro lugar o caducó.", // needs-review
+    "transfer.open-failed":                "No se pudo abrir la conversación — revisa tu conexión y toca Abrir de nuevo.", // needs-review
+    "transfer.age.now":                    "justo ahora", // needs-review
+    "transfer.age.min":                    "hace {n} min", // needs-review
+    "transfer.age.h":                      "hace {n} h", // needs-review
     "tooltip.apikey-save":     "Solo escritura — una vez guardado el valor no puede leerse", // needs-review
     "tooltip.apikey-clear":    "Elimina tu clave guardada y revierte a la clave establecida durante la instalación", // needs-review
     "tooltip.deep-badge":      "Almacenamiento en frío — toca para explorar", // needs-review
@@ -758,6 +795,7 @@ const LOCALES = {
     "tooltip.conv-reset-ctx":  "Limpiar historial de conversación — la memoria permanece cargada", // needs-review
     "tooltip.conv-voice":      "Toca para cambiar voz", // needs-review
     "tooltip.conv-archive":    "Toca para incluir archivos del archivo en el chat", // needs-review
+    "tooltip.conv-transfer":   "Enviar esta conversación a tu otro dispositivo", // needs-review
     "tooltip.conv-mute":       "Silenciar micrófono", // needs-review
     "tooltip.conv-discard":    "Descartar último fragmento", // needs-review
     "tooltip.conv-finish":     "Terminar diario", // needs-review
@@ -1151,6 +1189,24 @@ const LOCALES = {
     "cmd.desc.references":                 "trouver tous les enregistrements mentionnant un nom ou un sujet", // needs-review
     "cmd.desc.import-contacts":             "importer des contacts depuis un fichier .vcf (vCard) ou .csv — crée des enregistrements dans people.md", // needs-review
     "cmd.desc.reset":                      "réinitialiser tous les fichiers mémoire à des modèles vierges (nécessite la Clé d'Accès)", // needs-review
+    "cmd.desc.transfer":                   "envoyer cette conversation vers votre autre appareil (à récupérer dans les 12 heures)", // needs-review
+    "transfer.sent":                       "📲 Envoyée. Ouvrez WhosWhoZoo sur votre autre appareil pour la récupérer (conservée 12 heures).", // needs-review
+    "transfer.nothing":                    "Rien à transférer pour l'instant — cette conversation est vide.", // needs-review
+    "transfer.too-large":                  "Cette conversation est trop longue pour être transférée. Réessayez après une réinitialisation du contexte (/r).", // needs-review
+    "transfer.failed":                     "Impossible d'envoyer la conversation — vérifiez votre connexion et réessayez.", // needs-review
+    "transfer.photo-note":                 "📷 Photo jointe sur l'autre appareil", // needs-review
+    "transfer.card":                       "📲 Conversation de votre {device} · {age}", // needs-review
+    "transfer.from.computer":              "ordinateur", // needs-review
+    "transfer.from.phone":                 "téléphone", // needs-review
+    "transfer.from.tablet":                "tablette", // needs-review
+    "transfer.open":                       "Ouvrir", // needs-review
+    "transfer.not-now":                    "Pas maintenant", // needs-review
+    "transfer.continued":                  "Suite de votre {device} · envoyée {age}", // needs-review
+    "transfer.gone":                       "Cette conversation n'est plus en attente — elle a été ouverte ailleurs ou a expiré.", // needs-review
+    "transfer.open-failed":                "Impossible d'ouvrir la conversation — vérifiez votre connexion et touchez Ouvrir à nouveau.", // needs-review
+    "transfer.age.now":                    "à l'instant", // needs-review
+    "transfer.age.min":                    "il y a {n} min", // needs-review
+    "transfer.age.h":                      "il y a {n} h", // needs-review
     "tooltip.apikey-save":     "Écriture seule — une fois enregistrée, la valeur ne peut pas être relue", // needs-review
     "tooltip.apikey-clear":    "Supprime votre clé enregistrée et revient à la clé définie lors de l'installation", // needs-review
     "tooltip.deep-badge":      "Stockage froid — appuyez pour parcourir", // needs-review
@@ -1170,6 +1226,7 @@ const LOCALES = {
     "tooltip.conv-reset-ctx":  "Effacer l'historique de conversation — la mémoire reste chargée", // needs-review
     "tooltip.conv-voice":      "Appuyez pour changer de voix", // needs-review
     "tooltip.conv-archive":    "Appuyez pour inclure les fichiers d'archive dans le chat", // needs-review
+    "tooltip.conv-transfer":   "Envoyer cette conversation vers votre autre appareil", // needs-review
     "tooltip.conv-mute":       "Couper le microphone", // needs-review
     "tooltip.conv-discard":    "Ignorer le dernier fragment", // needs-review
     "tooltip.conv-finish":     "Terminer le journal", // needs-review
@@ -1563,6 +1620,24 @@ const LOCALES = {
     "cmd.desc.references":                 "किसी नाम या विषय का उल्लेख करने वाले सभी रिकॉर्ड खोजें", // needs-review
     "cmd.desc.import-contacts":             ".vcf (vCard) या .csv फ़ाइल से संपर्क इंपोर्ट करें — people.md में रिकॉर्ड बनाता है", // needs-review
     "cmd.desc.reset":                      "सभी मेमोरी फ़ाइलें खाली टेम्पलेट पर रीसेट करें (Access Key ज़रूरी)", // needs-review
+    "cmd.desc.transfer":                   "इस बातचीत को अपने दूसरे डिवाइस पर भेजें (12 घंटे के अंदर उठाई जा सकती है)", // needs-review
+    "transfer.sent":                       "📲 भेज दिया गया। इसे उठाने के लिए अपने दूसरे डिवाइस पर WhosWhoZoo खोलें (12 घंटे तक सुरक्षित)।", // needs-review
+    "transfer.nothing":                    "ट्रांसफ़र करने के लिए अभी कुछ नहीं है — यह बातचीत खाली है।", // needs-review
+    "transfer.too-large":                  "यह बातचीत ट्रांसफ़र करने के लिए बहुत लंबी है। कॉन्टेक्स्ट रीसेट (/r) के बाद फिर कोशिश करें।", // needs-review
+    "transfer.failed":                     "बातचीत भेजी नहीं जा सकी — अपना कनेक्शन जाँचें और फिर कोशिश करें।", // needs-review
+    "transfer.photo-note":                 "📷 फ़ोटो दूसरे डिवाइस पर संलग्न है", // needs-review
+    "transfer.card":                       "📲 आपके {device} से बातचीत · {age}", // needs-review
+    "transfer.from.computer":              "कंप्यूटर", // needs-review
+    "transfer.from.phone":                 "फ़ोन", // needs-review
+    "transfer.from.tablet":                "टैबलेट", // needs-review
+    "transfer.open":                       "खोलें", // needs-review
+    "transfer.not-now":                    "अभी नहीं", // needs-review
+    "transfer.continued":                  "आपके {device} से जारी · भेजा गया {age}", // needs-review
+    "transfer.gone":                       "वह बातचीत अब इंतज़ार में नहीं है — वह कहीं और खोली जा चुकी है या उसकी समय-सीमा खत्म हो गई।", // needs-review
+    "transfer.open-failed":                "बातचीत नहीं खुल सकी — अपना कनेक्शन जाँचें और फिर से खोलें दबाएँ।", // needs-review
+    "transfer.age.now":                    "अभी-अभी", // needs-review
+    "transfer.age.min":                    "{n} मिनट पहले", // needs-review
+    "transfer.age.h":                      "{n} घंटे पहले", // needs-review
     "tooltip.apikey-save":     "केवल लिखने के लिए — एक बार सेव होने पर वैल्यू वापस नहीं पढ़ी जा सकती", // needs-review
     "tooltip.apikey-clear":    "आपकी सेव की गई key हटाता है और इंस्टॉलेशन के दौरान सेट key पर वापस जाता है", // needs-review
     "tooltip.deep-badge":      "Cold storage — ब्राउज़ करने के लिए टैप करें", // needs-review
@@ -1582,6 +1657,7 @@ const LOCALES = {
     "tooltip.conv-reset-ctx":  "बातचीत इतिहास साफ करें — मेमोरी लोड रहती है", // needs-review
     "tooltip.conv-voice":      "आवाज़ें बदलने के लिए टैप करें", // needs-review
     "tooltip.conv-archive":    "chat में आर्काइव फ़ाइलें शामिल करने के लिए टैप करें", // needs-review
+    "tooltip.conv-transfer":   "इस बातचीत को अपने दूसरे डिवाइस पर भेजें", // needs-review
     "tooltip.conv-mute":       "माइक्रोफ़ोन म्यूट करें", // needs-review
     "tooltip.conv-discard":    "आखिरी हिस्सा हटाएँ", // needs-review
     "tooltip.conv-finish":     "जर्नलिंग समाप्त करें", // needs-review

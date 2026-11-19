@@ -11,7 +11,7 @@ import { buildStaticPrompt, buildDynamicPrompt } from "./system-prompt.js";
 // Reads/writes memory files from Cloudflare KV.
 // Calls Claude API server-side for chat.
 
-const WORKER_VERSION = "1.9.12";
+const WORKER_VERSION = "1.9.13";
 
 const MEMORY_FILES = ["people.md", "reflections.md", "fragments.md", "loops.md"];
 const ARCHIVE_FILES = ["archive_people.md", "archive_reflections.md", "archive_fragments.md", "archive_loops.md"];
@@ -36,7 +36,112 @@ export const PROTECTED_KEYS = new Set([
   "audit_ignored", "audit_last_run",
   "archive_dismissed", "deep_dismissed", "_error_log",
   "login_log",
+  "pending_transfer",
 ]);
+
+// ---- /transfer: one conversation waiting to be picked up on another device ----
+// The sending device posts the chat as shown (plain text per bubble) plus
+// Claude's history; the receiving device peeks (metadata only) and claims it,
+// which deletes it. One at a time, 12-hour expiry. Attachment data never
+// travels — image/document blocks become a short text note.
+export const TRANSFER_LIMITS = { ttlSeconds: 43200, maxBytes: 2000000 };
+const TRANSFER_KEY = "pending_transfer";
+const TRANSFER_SCREEN_KINDS = new Set(["user", "assistant", "system", "divider"]);
+const TRANSFER_LABELS = new Set(["computer", "phone", "tablet"]);
+const TRANSFER_PLACEHOLDER = {
+  image: "[Photo attached on the other device — not transferred]",
+  document: "[File attached on the other device — not transferred]",
+};
+
+const TRANSFER_EMPTY = "(empty message)";
+function isTokenCount(n) { return typeof n === "number" && Number.isFinite(n) && n >= 0; }
+
+export function validateTransferPayload(body) {
+  const bad = { ok: false, error: "invalid_payload" };
+  if (!body || typeof body !== "object") return bad;
+  const { messages, screen, contextTokens, historyTokens, archiveMode, attachments, fromLabel, fromDeviceId } = body;
+  if (!Array.isArray(messages) || !Array.isArray(screen) || !Array.isArray(attachments)) return bad;
+  const cleanMessages = [];
+  for (const m of messages) {
+    if (!m || (m.role !== "user" && m.role !== "assistant")) return bad;
+    // Anthropic rejects empty text blocks, so an empty one would break every
+    // later /chat call on the receiving device.
+    if (typeof m.content === "string") { cleanMessages.push({ role: m.role, content: m.content.trim() ? m.content : TRANSFER_EMPTY }); continue; }
+    if (!Array.isArray(m.content)) return bad;
+    const blocks = [];
+    for (const b of m.content) {
+      if (!b || typeof b !== "object" || typeof b.type !== "string") return bad;
+      if (TRANSFER_PLACEHOLDER[b.type]) blocks.push({ type: "text", text: TRANSFER_PLACEHOLDER[b.type] });
+      else if (b.type === "text" && typeof b.text === "string") { if (b.text.trim()) blocks.push({ type: "text", text: b.text }); }
+      else return bad;
+    }
+    cleanMessages.push({ role: m.role, content: blocks.length ? blocks : TRANSFER_EMPTY });
+  }
+  const cleanScreen = [];
+  for (const s of screen) {
+    if (!s || !TRANSFER_SCREEN_KINDS.has(s.kind) || typeof s.text !== "string") return bad;
+    const item = { kind: s.kind, text: s.text };
+    // An answer's "View sources" travels as the list of records it cited
+    // (null = none cited, the receiver falls back to name matching).
+    if ("sources" in s) {
+      if (s.sources !== null) {
+        if (!Array.isArray(s.sources) || s.sources.length > 20) return bad;
+        for (const c of s.sources) {
+          if (!c || typeof c.file !== "string" || typeof c.section !== "string" || c.file.length > 100 || c.section.length > 300) return bad;
+        }
+      }
+      item.sources = s.sources === null ? null : s.sources.map((c) => ({ file: c.file, section: c.section }));
+      if (s.query !== undefined && typeof s.query !== "string") return bad;
+      item.query = typeof s.query === "string" ? s.query.slice(0, 2000) : "";
+      item.verify = s.verify !== false;
+    }
+    cleanScreen.push(item);
+  }
+  const cleanAttachments = [];
+  for (const a of attachments) {
+    if (!a || typeof a.name !== "string" || typeof a.type !== "string") return bad;
+    cleanAttachments.push({ name: a.name, type: a.type });
+  }
+  if (!isTokenCount(contextTokens) || !isTokenCount(historyTokens)) return bad;
+  if (archiveMode !== 0 && archiveMode !== 1) return bad;
+  if (!TRANSFER_LABELS.has(fromLabel)) return bad;
+  if (typeof fromDeviceId !== "string" || fromDeviceId.length < 1 || fromDeviceId.length > 64) return bad;
+  return {
+    ok: true,
+    value: { messages: cleanMessages, screen: cleanScreen, contextTokens, historyTokens, archiveMode,
+             attachments: cleanAttachments, fromLabel, fromDeviceId },
+  };
+}
+
+export async function saveTransfer(env, body, now = Date.now()) {
+  const v = validateTransferPayload(body);
+  if (!v.ok) return { status: 400, body: { ok: false, error: "invalid_payload" } };
+  const serialized = JSON.stringify({ ...v.value, sentAt: now });
+  if (new TextEncoder().encode(serialized).length > TRANSFER_LIMITS.maxBytes) {
+    return { status: 413, body: { ok: false, error: "transfer_too_large" } };
+  }
+  await env.MEMORY.put(TRANSFER_KEY, serialized, { expirationTtl: TRANSFER_LIMITS.ttlSeconds });
+  return { status: 200, body: { ok: true, expiresAt: now + TRANSFER_LIMITS.ttlSeconds * 1000 } };
+}
+
+async function readTransfer(env) {
+  const raw = await env.MEMORY.get(TRANSFER_KEY);
+  if (!raw) return null;
+  try { const t = JSON.parse(raw); return t && typeof t === "object" ? t : null; } catch { return null; }
+}
+
+export async function peekTransfer(env) {
+  const t = await readTransfer(env);
+  if (!t) return { status: 200, body: { ok: true, pending: false } };
+  return { status: 200, body: { ok: true, pending: true, fromLabel: t.fromLabel, fromDeviceId: t.fromDeviceId, sentAt: t.sentAt } };
+}
+
+export async function claimTransfer(env) {
+  const t = await readTransfer(env);
+  if (!t) return { status: 404, body: { ok: false, error: "none_pending" } };
+  await env.MEMORY.delete(TRANSFER_KEY);
+  return { status: 200, body: { ok: true, transfer: t } };
+}
 
 // Endpoints the Access Key (WORKER_KEY) may authenticate on its own.
 //
@@ -636,6 +741,7 @@ export default {
         // Write $1 default cost cap so it's active from day one, not only after Settings is opened
         const existingCap = await env.MEMORY.get("daily_cost_cap");
         if (!existingCap) await env.MEMORY.put("daily_cost_cap", "1");
+        await env.MEMORY.delete("pending_transfer");
         const token = await issueToken(env);
         try { await appendLoginEvent(env, request, "setup"); } catch {}
         return json({ ok: true, token, expiresAt: Date.now() + 24 * 60 * 60 * 1000 }, 200, { ...cors, ...nocache });
@@ -671,6 +777,7 @@ export default {
         // set. The user must re-enroll under the new passphrase.
         await env.MEMORY.delete("webauthn_credential");
         await env.MEMORY.delete("webauthn_challenge");
+        await env.MEMORY.delete("pending_transfer");
         const token = await issueToken(env);
         return json({ ok: true, token, expiresAt: Date.now() + 24 * 60 * 60 * 1000, biometricInvalidated: true }, 200, { ...cors, ...nocache });
       }
@@ -2136,6 +2243,7 @@ ${found.content}`;
         if (body && body.newName && body.newName.trim()) {
           await env.MEMORY.put("config_user_name", body.newName.trim());
         }
+        await env.MEMORY.delete("pending_transfer");
         return json({ ok: true }, 200, { ...cors, ...nocache });
       }
 
@@ -2251,6 +2359,16 @@ ${found.content}`;
         }
         await env.MEMORY.put("daily_cost_cap", String(cap));
         return json({ ok: true, cap }, 200, { ...cors, ...nocache });
+      }
+
+      // /transfer — hand a conversation to another device (see TRANSFER_LIMITS).
+      if (path === "/transfer" && (method === "POST" || method === "GET")) {
+        const r = method === "POST" ? await saveTransfer(env, await safeJson(request)) : await peekTransfer(env);
+        return json(r.body, r.status, { ...cors, ...nocache });
+      }
+      if (method === "POST" && path === "/transferClaim") {
+        const r = await claimTransfer(env);
+        return json(r.body, r.status, { ...cors, ...nocache });
       }
 
       // GET /loginLog — recent login events for security awareness (session required)

@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.12
-const APP_VERSION = "1.9.12";
+// WhosZoo — Frontend App v1.9.13
+const APP_VERSION = "1.9.13";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;
@@ -197,6 +197,7 @@ const cacheBadge      = document.getElementById("cache-badge");
 const voiceBtn        = document.getElementById("conv-voice-btn");
 const archiveBtn      = document.getElementById("archive-btn");
 const convArchiveBtn  = document.getElementById("conv-archive-btn");
+const convTransferBtn = document.getElementById("conv-transfer-btn");
 const chatHeader      = document.querySelector(".chat-header");
 const cmdSuggestions  = document.getElementById("cmd-suggestions");
 
@@ -256,6 +257,7 @@ const COMMANDS = [
   { cmd: "/recall ",         desc: t("cmd.desc.recall") },
   { cmd: "/references ",     desc: t("cmd.desc.references") },
   { cmd: "/reset",           desc: t("cmd.desc.reset") },
+  { cmd: "/transfer",        desc: t("cmd.desc.transfer") },
 ];
 const COST_INDICATOR = { haiku: ["¢", "cost-haiku"], chat: ["$", "cost-chat"] };
 const archiveModal    = document.getElementById("archive-modal");
@@ -808,6 +810,7 @@ async function triggerBiometricUnlock(credId) {
     if (isResume) {
       _lastActivity = Date.now();
       offerJournalDraftRestore();
+      checkPendingTransfer();
     } else {
       startSession(true);
     }
@@ -1034,6 +1037,7 @@ async function doLogin() {
       // Conversation is still in memory — just restore activity timer
       _lastActivity = Date.now();
       offerJournalDraftRestore();
+      checkPendingTransfer();
     } else {
       startSession(true);
     }
@@ -1627,6 +1631,7 @@ async function startSession(skipLoading = false) {
     inputEl.focus();
     checkMemoryHealth();
     checkDailyBrief();
+    checkPendingTransfer();
     scanRecordPhotos(); // fire-and-forget; chips appear after photos load
     // Show previous login for passive security awareness
     (async () => {
@@ -1907,6 +1912,7 @@ async function sendMessage(text, brief = false, silent = false) {
     updateMemoryBadge(_workingBytes);
     messagesEl.innerHTML = "";
     appendMessage("system", t("chat.cleared"));
+    checkPendingTransfer(); // starting fresh: offer a conversation waiting from another device
     return;
   }
 
@@ -1921,6 +1927,7 @@ async function sendMessage(text, brief = false, silent = false) {
     inputEl.value = "";
     inputEl.style.height = "auto";
     resetContext();
+    checkPendingTransfer(); // starting fresh: offer a conversation waiting from another device
     return;
   }
 
@@ -2055,6 +2062,14 @@ async function sendMessage(text, brief = false, silent = false) {
     } catch (err) {
       appendMessage("system", `Diagnostics failed: ${err.message}`);
     }
+    return;
+  }
+
+  // /transfer — hand this conversation to another device
+  if (userText.trim().toLowerCase() === "/transfer") {
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    await sendTransfer();
     return;
   }
 
@@ -3969,12 +3984,229 @@ function showDisambigButtons(disambiguation) {
 }
 
 // ---- Context Warning ----
+// ---- /transfer: hand the conversation to another device ----
+// What travels: the chat as shown (plain text per bubble — every bubble is
+// rendered from plain text, so nothing is ever re-inserted as HTML) plus
+// Claude's history with attachment data replaced by a short note. The
+// sending device keeps its copy. Worker side: saveTransfer/peekTransfer/claimTransfer.
+const TRANSFER_DEVICE_KEY = "whoszoo_device_id";
+const TRANSFER_ATTACHMENT_NOTE = {
+  image: "[Photo attached on the other device — not transferred]",
+  document: "[File attached on the other device — not transferred]",
+};
+
+function transferDeviceId() {
+  try {
+    const existing = localStorage.getItem(TRANSFER_DEVICE_KEY);
+    if (existing) return existing;
+  } catch {}
+  let id;
+  try { id = crypto.randomUUID(); } catch {}
+  if (!id) id = Array.from({ length: 4 }, () => Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, "0")).join("");
+  try { localStorage.setItem(TRANSFER_DEVICE_KEY, id); } catch {}
+  return id;
+}
+
+function transferDeviceLabel() {
+  const ua = navigator.userAgent || "";
+  if (/iPad/.test(ua) || (isIOS() && !/iPhone|iPod/.test(ua))) return "tablet";
+  if (isIOS() || /Mobile|Android.*Mobile/.test(ua)) return "phone";
+  if (/Android/.test(ua)) return "tablet";
+  return "computer";
+}
+
+// Empty text blocks are dropped: Anthropic rejects them, which would break
+// every later question on the receiving device.
+function stripAttachmentData(msgs) {
+  return msgs.map((m) => {
+    if (!Array.isArray(m.content)) return { role: m.role, content: m.content };
+    const blocks = m.content
+      .map((b) => TRANSFER_ATTACHMENT_NOTE[b.type]
+        ? { type: "text", text: TRANSFER_ATTACHMENT_NOTE[b.type] }
+        : { type: "text", text: String(b.text ?? "") })
+      .filter((b) => b.text.trim());
+    return { role: m.role, content: blocks.length ? blocks : "(empty message)" };
+  });
+}
+
+const TRANSFER_SKIP_SELECTOR = "button, img, .sources-bar, .sources-results, .sources-zero, .photo-inline-label, .photo-inline-strip";
+function captureScreenTranscript() {
+  const out = [];
+  for (const el of messagesEl.children) {
+    if (el.classList.contains("context-divider")) { out.push({ kind: "divider", text: "" }); continue; }
+    if (!el.classList.contains("message") || el.classList.contains("thinking")) continue;
+    if (el.classList.contains("attachment-msg")) { out.push({ kind: "user", text: t("transfer.photo-note") }); continue; }
+    const kind = ["user", "assistant", "system"].find((k) => el.classList.contains(k));
+    if (!kind) continue;
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll(TRANSFER_SKIP_SELECTOR).forEach((n) => n.remove());
+    const text = clone.textContent.trim();
+    if (!text || (kind === "user" && text.toLowerCase() === "/transfer")) continue; // the command's own echo
+    const item = { kind, text };
+    if (el.dataset.transferSources) {
+      try {
+        const src = JSON.parse(el.dataset.transferSources);
+        const list = Array.isArray(src.s)
+          ? src.s.filter((c) => c && typeof c.file === "string" && typeof c.section === "string")
+              .slice(0, 20).map((c) => ({ file: c.file, section: c.section }))
+          : null;
+        Object.assign(item, { sources: list, query: String(src.q || ""), verify: src.v !== false });
+      } catch {}
+    }
+    out.push(item);
+  }
+  return out;
+}
+
+function buildTransferPayload() {
+  return {
+    messages: stripAttachmentData(messages),
+    screen: captureScreenTranscript(),
+    contextTokens: _contextTokens,
+    historyTokens: _historyTokens,
+    archiveMode,
+    attachments: attachmentsInHistory.map((a) => ({ name: String(a.name), type: String(a.type) })),
+    fromLabel: transferDeviceLabel(),
+    fromDeviceId: transferDeviceId(),
+  };
+}
+
+async function sendTransfer({ quiet = false } = {}) {
+  const say = (key) => (quiet ? showToast(t(key)) : appendMessage("system", t(key)));
+  const payload = buildTransferPayload();
+  if (!payload.messages.length && !payload.screen.length) { say("transfer.nothing"); return false; }
+  try {
+    const res = await api("/transfer", "POST", payload);
+    if (res.ok) { say("transfer.sent"); return true; }
+    say(res.status === 413 ? "transfer.too-large" : "transfer.failed");
+  } catch {
+    say("transfer.failed");
+  }
+  return false;
+}
+
+// Picking up: after every unlock and when the app comes back to the
+// foreground. Never in voice/journal mode or while a reply streams, never for
+// this device's own transfer, and at most once per transfer after "Not now".
+let _transferDismissedAt = null;
+let _transferCheckOnExit = false; // set by ↺ Context Reset in voice mode
+const TRANSFER_DISMISSED_KEY = "whoszoo_transfer_dismissed"; // survives a reload, not a closed tab
+
+function transferDismissed(sentAt) {
+  if (sentAt === _transferDismissedAt) return true;
+  try { return sessionStorage.getItem(TRANSFER_DISMISSED_KEY) === String(sentAt); } catch { return false; }
+}
+
+// Moments when replacing the conversation would mix two conversations up.
+function transferBusy() {
+  return convMode || journalDictating || Boolean(pendingWrite)
+    || Boolean(stopBtn && !stopBtn.classList.contains("hidden"));
+}
+
+function formatTransferAge(ms) {
+  const min = Math.floor(Math.max(0, ms) / 60000);
+  if (min < 1) return t("transfer.age.now");
+  if (min < 60) return t("transfer.age.min", { n: min });
+  return t("transfer.age.h", { n: Math.floor(min / 60) });
+}
+
+async function checkPendingTransfer() {
+  if (!session || transferBusy()) return;
+  if (document.getElementById("transfer-card")) return;
+  try {
+    const res = await api("/transfer", "GET");
+    if (!res.ok) return;
+    const meta = await res.json();
+    if (!meta || !meta.pending || meta.fromDeviceId === transferDeviceId()) return;
+    if (transferDismissed(meta.sentAt)) return;
+    if (!session || transferBusy() || document.getElementById("transfer-card")) return;
+    showTransferCard(meta);
+  } catch {}
+}
+
+function transferFromText(label) {
+  return t("transfer.from." + (["computer", "phone", "tablet"].includes(label) ? label : "computer"));
+}
+
+function showTransferCard(meta) {
+  const card = document.createElement("div");
+  card.id = "transfer-card";
+  card.className = "archive-hint";
+  const line = document.createElement("span");
+  line.className = "transfer-card-text";
+  line.textContent = t("transfer.card", { device: transferFromText(meta.fromLabel), age: formatTransferAge(Date.now() - meta.sentAt) });
+  const open = document.createElement("button");
+  open.id = "transfer-open";
+  open.className = "archive-hint-btn";
+  open.textContent = t("transfer.open");
+  const later = document.createElement("button");
+  later.id = "transfer-not-now";
+  later.className = "archive-hint-btn recall-hint-btn";
+  later.textContent = t("transfer.not-now");
+  open.addEventListener("click", () => {
+    if (transferBusy()) return; // a reply or a memory update is in progress: try again after
+    open.disabled = true;
+    openTransfer();
+  });
+  later.addEventListener("click", () => {
+    _transferDismissedAt = meta.sentAt;
+    try { sessionStorage.setItem(TRANSFER_DISMISSED_KEY, String(meta.sentAt)); } catch {}
+    card.remove();
+  });
+  card.append(line, open, later);
+  // Don't pull the chat down if Hans is reading further up.
+  const atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+  messagesEl.appendChild(card);
+  if (atBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function openTransfer() {
+  const card = document.getElementById("transfer-card");
+  let data = null;
+  let status = 0;
+  try {
+    const res = await api("/transferClaim", "POST");
+    status = res.status;
+    data = res.ok ? await res.json() : null;
+  } catch {}
+  const tr = data && data.ok ? data.transfer : null;
+  if (!tr && status !== 404) {
+    // Network error or server trouble: it is still waiting, so keep the card.
+    const open = document.getElementById("transfer-open");
+    if (open) open.disabled = false;
+    appendMessage("system", t("transfer.open-failed"));
+    return;
+  }
+  if (card) card.remove();
+  if (!tr) { appendMessage("system", t("transfer.gone")); return; }
+  messagesEl.innerHTML = "";
+  for (const item of Array.isArray(tr.screen) ? tr.screen : []) {
+    if (item.kind === "divider") appendContextDivider();
+    else if (["user", "assistant", "system"].includes(item.kind)) {
+      const text = String(item.text ?? "");
+      const el = appendMessage(item.kind, text);
+      if ("sources" in item) appendSourcesFooter(el, text, String(item.query || ""), Array.isArray(item.sources) ? item.sources : null, item.verify !== false);
+    }
+  }
+  messages = Array.isArray(tr.messages) ? tr.messages : [];
+  _contextTokens = Number(tr.contextTokens) || 0;
+  _historyTokens = Number(tr.historyTokens) || 0;
+  attachmentsInHistory = Array.isArray(tr.attachments) ? tr.attachments : [];
+  pendingRecallContext = null;
+  pendingDisambig = null; // a "which person?" prompt from the old conversation must not catch the next answer
+  if ((tr.archiveMode === 1 ? 1 : 0) !== archiveMode) _toggleArchive();
+  updateContextAttachBar();
+  updateVaultBar();
+  updateMemoryBadge(_workingBytes);
+  appendMessage("system", t("transfer.continued", { device: transferFromText(tr.fromLabel), age: formatTransferAge(Date.now() - tr.sentAt) }));
+}
+
 function appendContextWarning() {
   const exchanges = messages.length / 2;
   const el = document.createElement("div");
   el.className = "context-warning";
   el.innerHTML = `<button class="context-reset-btn">Reset (/r)</button><span class="context-warning-text">${exchanges} exchanges in · consider resetting to reduce token usage and costs.</span>`;
-  el.querySelector(".context-reset-btn").addEventListener("click", () => resetContext());
+  el.querySelector(".context-reset-btn").addEventListener("click", () => { resetContext(); checkPendingTransfer(); });
   messagesEl.appendChild(el);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
@@ -3986,13 +4218,15 @@ function resetContext(silent = false) {
   pendingRecallContext = null;
   updateVaultBar();
   updateMemoryBadge(_workingBytes);
-  if (!silent) {
-    const divider = document.createElement("div");
-    divider.className = "context-divider";
-    divider.innerHTML = `<span class="context-divider-label">✓ Context Reset</span><span class="context-divider-text">Claude only sees messages below this point.</span>`;
-    messagesEl.appendChild(divider);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
+  if (!silent) appendContextDivider();
+}
+
+function appendContextDivider() {
+  const divider = document.createElement("div");
+  divider.className = "context-divider";
+  divider.innerHTML = `<span class="context-divider-label">✓ Context Reset</span><span class="context-divider-text">Claude only sees messages below this point.</span>`;
+  messagesEl.appendChild(divider);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
 // ---- Sources footer ----
@@ -4085,6 +4319,9 @@ async function verifyCitedSources(cited) {
 }
 
 function appendSourcesFooter(msgEl, replyText, queryText = "", precomputedSources = null, verify = true) {
+  // Remembered so /transfer can rebuild this footer on the other device
+  // (same memory there, so the lookup works the same way).
+  try { msgEl.dataset.transferSources = JSON.stringify({ s: precomputedSources, q: queryText, v: verify }); } catch {}
   const bar = document.createElement("div");
   bar.className = "sources-bar";
   const btn = document.createElement("button");
@@ -5062,6 +5299,9 @@ function _toggleArchive() {
 }
 archiveBtn.addEventListener("click", _toggleArchive);
 if (convArchiveBtn) convArchiveBtn.addEventListener("click", _toggleArchive);
+// Voice mode: hand the conversation off before Token Saver clears it on exit.
+// Touches no mic/recogniser state, so listening carries on.
+if (convTransferBtn) convTransferBtn.addEventListener("click", () => { sendTransfer({ quiet: true }); });
 updateArchiveBtn();
 
 // ---- Audit ----
@@ -7300,6 +7540,7 @@ convExit.addEventListener("click", () => {
 convResetCtxBtn.addEventListener("click", () => {
   resetContext(true);
   showToast(t("toast.context-reset"));
+  _transferCheckOnExit = true; // the card can't show over voice mode: offer it on the way out
 });
 convMuteBtn.addEventListener("click", toggleMute);
 
@@ -7409,6 +7650,9 @@ function exitConvMode() {
   convOverlay.classList.add("hidden");
   setConvState("idle");
   if (tokenSaverEnabled()) resetContext();
+  // Only after ↺ in voice mode — an unconditional check here would add a
+  // request to every voice-mode exit.
+  if (_transferCheckOnExit) { _transferCheckOnExit = false; checkPendingTransfer(); }
 }
 
 function confirmJournalExit() {
@@ -7462,6 +7706,8 @@ document.addEventListener("visibilitychange", () => {
     if (convMode && !journalDictating) pauseForScreenOff();
   } else if (convMode) {
     acquireConvWakeLock(); // the browser dropped it while the page was hidden
+  } else {
+    checkPendingTransfer();
   }
 });
 

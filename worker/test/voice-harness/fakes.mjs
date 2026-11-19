@@ -282,6 +282,9 @@ export function installFakes(window, opts) {
     counts[path] = (counts[path] || 0) + 1;
     const mode = cfg.routes[path] || "ok";
     rec("fetch", { path, mode });
+    if (path === "/transfer" && (init.method || "GET") === "POST") {
+      try { rec("fetch.body", { path, body: JSON.parse(init.body) }); } catch { rec("fetch.body", { path, body: null }); }
+    }
     const signal = init.signal;
     return new Promise((res, rej) => {
       if (signal) {
@@ -294,11 +297,20 @@ export function installFakes(window, opts) {
       if (mode === "429") return later(() => res(respond(429, { ok: false, error: "voice_allowance_exhausted" })));
       if (mode === "503") return later(() => res(respond(503, { ok: false, error: "ai_not_configured" })));
       if (mode === "404") return later(() => res(respond(404, { ok: false, error: "not found" })));
+      if (mode === "413") return later(() => res(respond(413, { ok: false, error: "transfer_too_large" })));
+      if (mode === "401") return later(() => res(respond(401, "Unauthorized", "text/plain")));
       // ElevenLabs out of credits: the worker re-voiced the reply with Aura-1 and says so.
       if (mode === "fallback-credits") return later(() => res(respond(200, new ArrayBuffer(2000), "audio/mpeg", { "x-voice-fallback": "elevenlabs_credits" })));
       // ElevenLabs out of credits and Cloudflare unavailable too.
       if (mode === "credits-exhausted") return later(() => res(respond(502, { ok: false, error: "voice_credits_exhausted" })));
       switch (path) {
+        case "/auth": return later(() => res(respond(200, { ok: true, token: "t2", expiresAt: Date.now() + 86400000 })));
+        case "/transfer":
+          if ((init.method || "GET") === "POST") return later(() => res(respond(200, { ok: true, expiresAt: Date.now() + 43200000 })));
+          return later(() => res(respond(200, cfg.transferPending ?? { ok: true, pending: false })));
+        case "/transferClaim":
+          if (cfg.transferPayload) return later(() => res(respond(200, { ok: true, transfer: cfg.transferPayload })));
+          return later(() => res(respond(404, { ok: false, error: "none_pending" })));
         case "/authStatus": return later(() => res(respond(200, { initialized: true })));
         case "/transcribe": return later(() => res(respond(200, { ok: true, text: cfg.transcript })));
         case "/speak": return later(() => res(respond(200, new ArrayBuffer(2000), "audio/mpeg")));
