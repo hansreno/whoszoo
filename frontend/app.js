@@ -1,5 +1,5 @@
-// WhosZoo — Frontend App v1.9.13
-const APP_VERSION = "1.9.13";
+// WhosZoo — Frontend App v1.9.14
+const APP_VERSION = "1.9.14";
 // voice-logic.js loads before this file. A stale cached copy (or none) must not
 // break the app: voice is disabled with a clear message instead.
 const VOICE_LOGIC_OK = typeof VoiceLogic !== "undefined" && VoiceLogic.version === APP_VERSION;

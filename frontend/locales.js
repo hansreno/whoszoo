@@ -758,8 +758,8 @@ const LOCALES = {
     "cmd.desc.references":                 "encontrar todos los registros que mencionan un nombre o tema", // needs-review
     "cmd.desc.import-contacts":             "importar contactos desde un archivo .vcf (vCard) o .csv — crea registros en people.md", // needs-review
     "cmd.desc.reset":                      "borrar todos los archivos de memoria a plantillas en blanco (requiere Clave de Acceso)", // needs-review
-    "cmd.desc.transfer":                   "enviar esta conversación a tu otro dispositivo (se recoge en un plazo de 12 horas)", // needs-review
-    "transfer.sent":                       "📲 Enviada. Abre WhosWhoZoo en tu otro dispositivo para recogerla (se guarda 12 horas).", // needs-review
+    "cmd.desc.transfer":                   "enviar esta conversación a tu otro dispositivo (disponible durante 12 horas)", // needs-review
+    "transfer.sent":                       "📲 Enviada. Abre WhosWhoZoo en tu otro dispositivo para continuarla (se guarda 12 horas).", // needs-review
     "transfer.nothing":                    "Aún no hay nada que transferir — esta conversación está vacía.", // needs-review
     "transfer.too-large":                  "Esta conversación es demasiado larga para transferirla. Inténtalo de nuevo después de reiniciar el contexto (/r).", // needs-review
     "transfer.failed":                     "No se pudo enviar la conversación — revisa tu conexión e inténtalo de nuevo.", // needs-review
@@ -773,7 +773,7 @@ const LOCALES = {
     "transfer.continued":                  "Continuación desde tu {device} · enviada {age}", // needs-review
     "transfer.gone":                       "Esa conversación ya no está en espera — se abrió en otro lugar o caducó.", // needs-review
     "transfer.open-failed":                "No se pudo abrir la conversación — revisa tu conexión y toca Abrir de nuevo.", // needs-review
-    "transfer.age.now":                    "justo ahora", // needs-review
+    "transfer.age.now":                    "ahora mismo", // needs-review
     "transfer.age.min":                    "hace {n} min", // needs-review
     "transfer.age.h":                      "hace {n} h", // needs-review
     "tooltip.apikey-save":     "Solo escritura — una vez guardado el valor no puede leerse", // needs-review
@@ -1201,7 +1201,7 @@ const LOCALES = {
     "transfer.from.tablet":                "tablette", // needs-review
     "transfer.open":                       "Ouvrir", // needs-review
     "transfer.not-now":                    "Pas maintenant", // needs-review
-    "transfer.continued":                  "Suite de votre {device} · envoyée {age}", // needs-review
+    "transfer.continued":                  "Conversation reprise depuis votre {device} · envoyée {age}", // needs-review
     "transfer.gone":                       "Cette conversation n'est plus en attente — elle a été ouverte ailleurs ou a expiré.", // needs-review
     "transfer.open-failed":                "Impossible d'ouvrir la conversation — vérifiez votre connexion et touchez Ouvrir à nouveau.", // needs-review
     "transfer.age.now":                    "à l'instant", // needs-review
@@ -1620,8 +1620,8 @@ const LOCALES = {
     "cmd.desc.references":                 "किसी नाम या विषय का उल्लेख करने वाले सभी रिकॉर्ड खोजें", // needs-review
     "cmd.desc.import-contacts":             ".vcf (vCard) या .csv फ़ाइल से संपर्क इंपोर्ट करें — people.md में रिकॉर्ड बनाता है", // needs-review
     "cmd.desc.reset":                      "सभी मेमोरी फ़ाइलें खाली टेम्पलेट पर रीसेट करें (Access Key ज़रूरी)", // needs-review
-    "cmd.desc.transfer":                   "इस बातचीत को अपने दूसरे डिवाइस पर भेजें (12 घंटे के अंदर उठाई जा सकती है)", // needs-review
-    "transfer.sent":                       "📲 भेज दिया गया। इसे उठाने के लिए अपने दूसरे डिवाइस पर WhosWhoZoo खोलें (12 घंटे तक सुरक्षित)।", // needs-review
+    "cmd.desc.transfer":                   "इस बातचीत को अपने दूसरे डिवाइस पर भेजें (12 घंटे तक उपलब्ध रहती है)", // needs-review
+    "transfer.sent":                       "📲 भेज दिया गया। इसे पाने के लिए अपने दूसरे डिवाइस पर WhosWhoZoo खोलें (12 घंटे तक सुरक्षित)।", // needs-review
     "transfer.nothing":                    "ट्रांसफ़र करने के लिए अभी कुछ नहीं है — यह बातचीत खाली है।", // needs-review
     "transfer.too-large":                  "यह बातचीत ट्रांसफ़र करने के लिए बहुत लंबी है। कॉन्टेक्स्ट रीसेट (/r) के बाद फिर कोशिश करें।", // needs-review
     "transfer.failed":                     "बातचीत भेजी नहीं जा सकी — अपना कनेक्शन जाँचें और फिर कोशिश करें।", // needs-review
@@ -1632,9 +1632,9 @@ const LOCALES = {
     "transfer.from.tablet":                "टैबलेट", // needs-review
     "transfer.open":                       "खोलें", // needs-review
     "transfer.not-now":                    "अभी नहीं", // needs-review
-    "transfer.continued":                  "आपके {device} से जारी · भेजा गया {age}", // needs-review
+    "transfer.continued":                  "आपके {device} से जारी बातचीत · {age} भेजी गई", // needs-review
     "transfer.gone":                       "वह बातचीत अब इंतज़ार में नहीं है — वह कहीं और खोली जा चुकी है या उसकी समय-सीमा खत्म हो गई।", // needs-review
-    "transfer.open-failed":                "बातचीत नहीं खुल सकी — अपना कनेक्शन जाँचें और फिर से खोलें दबाएँ।", // needs-review
+    "transfer.open-failed":                "बातचीत नहीं खुल सकी — अपना कनेक्शन जाँचें और “खोलें” पर फिर से टैप करें।", // needs-review
     "transfer.age.now":                    "अभी-अभी", // needs-review
     "transfer.age.min":                    "{n} मिनट पहले", // needs-review
     "transfer.age.h":                      "{n} घंटे पहले", // needs-review
